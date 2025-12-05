@@ -1,0 +1,130 @@
+/* Global styles for Alex Status Tracker */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Crimson Pro', Georgia, serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #0d0d14;
+  color: #e8e6e3;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(26, 26, 46, 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(201, 162, 39, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 162, 39, 0.5);
+}
+
+/* Number input styling */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  opacity: 1;
+}
+
+/* Selection styling */
+::selection {
+  background-color: rgba(201, 162, 39, 0.3);
+  color: #fff;
+}
+
+/* Code/Pre block styling */
+pre, code {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: 0.15s;
+  transition-timing-function: ease-in-out;
+}
+
+/* Prevent layout shift during loading */
+#root {
+  min-height: 100vh;
+}
+
+/* Animation for loading states */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Focus outline styling */
+*:focus-visible {
+  outline: 2px solid rgba(201, 162, 39, 0.5);
+  outline-offset: 2px;
+}
+
+/* Table row hover enhancement */
+.MuiTableRow-root:hover {
+  background-color: rgba(201, 162, 39, 0.05) !important;
+}
+
+/* Accordion styling improvements */
+.MuiAccordion-root {
+  background-color: rgba(26, 26, 46, 0.8) !important;
+}
+
+.MuiAccordion-root:before {
+  display: none;
+}
+
+/* Dialog backdrop */
+.MuiDialog-root .MuiBackdrop-root {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+/* Tooltip styling */
+.MuiTooltip-tooltip {
+  background-color: rgba(26, 26, 46, 0.95) !important;
+  border: 1px solid rgba(201, 162, 39, 0.2) !important;
+  font-size: 0.875rem !important;
+}
+
+/* Chip styling enhancement */
+.MuiChip-root {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Status color indicators */
+.stat-increased {
+  color: #4caf50;
+}
+
+.stat-decreased {
+  color: #f44336;
+}
+
+.advancement-available {
+  color: #ff9800;
+  font-weight: 600;
+}
+

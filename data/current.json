@@ -1,0 +1,101 @@
+{
+  "alex": {
+    "name": "Alex Moore",
+    "level": 60,
+    "class": "Spell Weaver (Novice)",
+    "classAdvancement": true,
+    "hp": { "current": 1000, "max": 1000 },
+    "mp": { "current": 1718, "max": 1718 },
+    "baseStats": {
+      "strength": 29,
+      "agility": 50,
+      "constitution": 100,
+      "vitality": 31,
+      "intellect": 473,
+      "willpower": 1281,
+      "mana": 172,
+      "wisdom": 163
+    },
+    "traits": {
+      "current": 1,
+      "max": 3,
+      "items": [
+        { "name": "Primordial Will" }
+      ]
+    },
+    "titles": [
+      { "name": "Pathfinder", "isPrimary": false, "bonuses": [] },
+      { "name": "Unbound", "isPrimary": false, "bonuses": [] },
+      { "name": "One Against Many", "isPrimary": false, "bonuses": [] },
+      { "name": "Control Freak", "isPrimary": false, "bonuses": [] },
+      { "name": "Journeyman Ritualist", "isPrimary": false, "bonuses": [] },
+      { "name": "Gifted Mage", "isPrimary": false, "bonuses": [] },
+      { "name": "The Magician", "isPrimary": true, "bonuses": [] },
+      { "name": "Integration Champion", "isPrimary": false, "bonuses": [] },
+      { "name": "Iron Will", "isPrimary": false, "bonuses": [] }
+    ],
+    "bondSkills": [
+      {
+        "name": "Mana Siphon",
+        "rank": "Journeyman",
+        "level": 16,
+        "advancement": false,
+        "primaryStatShared": "Mana"
+      }
+    ],
+    "activeSkills": [
+      { "name": "Mana Thread", "rank": "Journeyman", "level": 18, "advancement": false },
+      { "name": "Mana Infusion", "rank": "Journeyman", "level": 6, "advancement": false },
+      { "name": "Feather Step", "rank": "Novice", "level": 20, "advancement": true },
+      { "name": "Fractal Body", "rank": "Novice", "level": 12, "advancement": false },
+      { "name": "Parallel Mind", "rank": "Adept", "level": 2, "advancement": false },
+      { "name": "Intimidate", "rank": "Novice", "level": 5, "advancement": false },
+      { "name": "Spell Storage", "rank": "Novice", "level": 18, "advancement": false },
+      { "name": "Shrug Off", "rank": "Novice", "level": 17, "advancement": false },
+      { "name": "Running", "rank": "Novice", "level": 17, "advancement": false },
+      { "name": "Meditate", "rank": "Novice", "level": 15, "advancement": false },
+      { "name": "Mana Blade", "rank": "Novice", "level": 5, "advancement": false }
+    ],
+    "passiveSkills": [
+      { "name": "Sleep Resistance", "tier": "III" },
+      { "name": "Efficient Rites", "tier": "I" },
+      { "name": "Spell Weaving", "tier": "II" },
+      { "name": "Mana Conduit", "tier": "I" },
+      { "name": "Quick Recovery", "tier": "I" }
+    ],
+    "boundItems": [
+      { "name": "Spectral Eye of the Celestial Sage", "rank": "D", "type": "Growth Item (Unique)" },
+      { "name": "The Magician's Cap", "rank": "D", "type": "Growth Item" },
+      { "name": "Manifest Planetary Title", "rank": "Unique", "type": "Identification Item" }
+    ]
+  },
+  "valtherion": {
+    "name": "Valtherion",
+    "level": 1,
+    "class": "",
+    "classAdvancement": false,
+    "hp": { "current": 100, "max": 100 },
+    "mp": { "current": 100, "max": 100 },
+    "baseStats": {
+      "strength": 10,
+      "agility": 10,
+      "constitution": 10,
+      "vitality": 10,
+      "intellect": 10,
+      "willpower": 10,
+      "mana": 172,
+      "wisdom": 10
+    },
+    "traits": {
+      "current": 0,
+      "max": 3,
+      "items": []
+    },
+    "titles": [],
+    "bondSkills": [],
+    "activeSkills": [],
+    "passiveSkills": [],
+    "boundItems": []
+  }
+}
+
