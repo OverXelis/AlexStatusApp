@@ -3,6 +3,8 @@
  * Preserves the exact formatting from the original
  */
 
+import { calculateAllStats, calculateDerivedStats, getCurrentClass } from './statCalculator';
+
 /**
  * Format a single skill for output
  * @param {Object} skill - Skill object
@@ -35,10 +37,35 @@ function formatBoundItem(item) {
  * Format the complete status screen for a character
  * @param {Object} character - Character data object
  * @param {Object} options - Formatting options
+ * @param {Object} options.calculatedStats - Pre-calculated final stats (if available)
+ * @param {Object} options.derivedStats - Pre-calculated HP/MP (if available)
+ * @param {number} options.bondedMana - Additional mana from bond (for MP calculation)
  * @returns {string} - Formatted status screen string
  */
 export function formatStatusScreen(character, options = {}) {
   if (!character) return '';
+
+  // Use pre-calculated stats if provided, otherwise calculate them
+  let finalStats = options.calculatedStats;
+  let derivedStats = options.derivedStats;
+  
+  if (!finalStats) {
+    const calculation = calculateAllStats(character);
+    finalStats = calculation.stats;
+  }
+  
+  if (!derivedStats) {
+    derivedStats = calculateDerivedStats(finalStats, character, options.bondedMana || 0);
+  }
+
+  // Get current class name
+  const currentClass = getCurrentClass(character.classHistory, character.level);
+  const className = currentClass?.name || character.class || '';
+  
+  // Check for class advancement
+  const classAdvancement = currentClass?.endLevel === null && character.classAdvancement 
+    ? ' + Advancement Offered' 
+    : '';
 
   const lines = [];
 
@@ -51,25 +78,24 @@ export function formatStatusScreen(character, options = {}) {
   lines.push('');
   
   // Name and Level
-  const classAdvancement = character.classAdvancement ? ' + Advancement Offered' : '';
   lines.push(`Name: ${character.name} - Level ${character.level}`);
   lines.push('');
   
   // Class
-  if (character.class) {
-    lines.push(`Class: ${character.class}${classAdvancement}`);
+  if (className) {
+    lines.push(`Class: ${className}${classAdvancement}`);
     lines.push('');
   }
 
-  // HP/MP
-  lines.push(`HP: ${character.hp?.current || 0}/${character.hp?.max || 0}`);
+  // HP/MP - use derived stats
+  lines.push(`HP: ${derivedStats.hp?.max || 0}/${derivedStats.hp?.max || 0}`);
   lines.push('');
-  lines.push(`MP: ${character.mp?.current || 0}/${character.mp?.max || 0}`);
+  lines.push(`MP: ${derivedStats.mp?.max || 0}/${derivedStats.mp?.max || 0}`);
   lines.push('');
 
   // Traits
   if (character.traits) {
-    lines.push(`**Traits: (${character.traits.current}/${character.traits.max})** `);
+    lines.push(`**Traits: (${character.traits.current || character.traits.items?.length || 0}/${character.traits.max})** `);
     lines.push('');
     if (character.traits.items && character.traits.items.length > 0) {
       character.traits.items.forEach((trait) => {
@@ -91,28 +117,28 @@ export function formatStatusScreen(character, options = {}) {
     });
   }
 
-  // Physical Stats
+  // Physical Stats - use calculated final stats
   lines.push('**Physical Stats:** ');
   lines.push('');
-  lines.push(`Strength: ${character.baseStats?.strength || 0}`);
+  lines.push(`Strength: ${finalStats.strength || 0}`);
   lines.push('');
-  lines.push(`Agility: ${character.baseStats?.agility || 0}`);
+  lines.push(`Agility: ${finalStats.agility || 0}`);
   lines.push('');
-  lines.push(`Constitution: ${character.baseStats?.constitution || 0}`);
+  lines.push(`Constitution: ${finalStats.constitution || 0}`);
   lines.push('');
-  lines.push(`Vitality: ${character.baseStats?.vitality || 0}`);
+  lines.push(`Vitality: ${finalStats.vitality || 0}`);
   lines.push('');
 
-  // Magical Stats
+  // Magical Stats - use calculated final stats
   lines.push('**Magical Stats:** ');
   lines.push('');
-  lines.push(`Intellect: ${character.baseStats?.intellect || 0}`);
+  lines.push(`Intellect: ${finalStats.intellect || 0}`);
   lines.push('');
-  lines.push(`Willpower: ${character.baseStats?.willpower || 0}`);
+  lines.push(`Willpower: ${finalStats.willpower || 0}`);
   lines.push('');
-  lines.push(`Mana: ${character.baseStats?.mana || 0}`);
+  lines.push(`Mana: ${finalStats.mana || 0}`);
   lines.push('');
-  lines.push(`Wisdom: ${character.baseStats?.wisdom || 0}`);
+  lines.push(`Wisdom: ${finalStats.wisdom || 0}`);
   lines.push('');
 
   // Bond Skills
@@ -169,11 +195,20 @@ export function formatStatusScreen(character, options = {}) {
  * Format both characters' status screens
  * @param {Object} alex - Alex's character data
  * @param {Object} valtherion - Valtherion's character data
+ * @param {Object} options - Additional options with pre-calculated stats
  * @returns {string} - Combined formatted status screens
  */
-export function formatBothStatusScreens(alex, valtherion) {
-  const alexScreen = formatStatusScreen(alex);
-  const valScreen = valtherion?.name ? formatStatusScreen(valtherion) : '';
+export function formatBothStatusScreens(alex, valtherion, options = {}) {
+  const alexScreen = formatStatusScreen(alex, {
+    calculatedStats: options.alexStats,
+    derivedStats: options.alexDerived,
+    bondedMana: options.alexBondedMana,
+  });
+  
+  const valScreen = valtherion?.name ? formatStatusScreen(valtherion, {
+    calculatedStats: options.valStats,
+    derivedStats: options.valDerived,
+  }) : '';
   
   if (valScreen) {
     return `${alexScreen}\n\n${valScreen}`;
@@ -182,4 +217,3 @@ export function formatBothStatusScreens(alex, valtherion) {
 }
 
 export default formatStatusScreen;
-

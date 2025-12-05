@@ -1,38 +1,385 @@
 {
   "alex": {
     "name": "Alex Moore",
-    "level": 60,
-    "class": "Spell Weaver (Novice)",
-    "classAdvancement": true,
-    "hp": { "current": 1000, "max": 1000 },
-    "mp": { "current": 1718, "max": 1718 },
-    "baseStats": {
-      "strength": 29,
-      "agility": 50,
-      "constitution": 100,
-      "vitality": 31,
-      "intellect": 473,
-      "willpower": 1281,
-      "mana": 172,
-      "wisdom": 163
+    "level": 31,
+    "hp": {
+      "current": 1000,
+      "max": 1000
     },
+    "mp": {
+      "current": 1718,
+      "max": 1718
+    },
+    "classHistory": [
+      {
+        "name": "Ritualist",
+        "startLevel": 10,
+        "endLevel": 30,
+        "statsPerLevel": {
+          "wisdom": 3,
+          "constitution": 2,
+          "agility": 1,
+          "intellect": 1,
+          "willpower": 1
+        }
+      },
+      {
+        "name": "Spell Weaver (Novice)",
+        "startLevel": 30,
+        "endLevel": null,
+        "statsPerLevel": {
+          "willpower": 4,
+          "intellect": 3,
+          "mana": 2,
+          "wisdom": 2,
+          "constitution": 1
+        }
+      }
+    ],
+    "levelSnapshots": {
+      "1": {
+        "strength": 4,
+        "agility": 5,
+        "constitution": 5,
+        "vitality": 6,
+        "intellect": 6,
+        "willpower": 3,
+        "mana": 6,
+        "wisdom": 6
+      },
+      "30": {
+        "stats": {
+          "strength": 4,
+          "agility": 25,
+          "constitution": 45,
+          "vitality": 6,
+          "intellect": 26,
+          "willpower": 324,
+          "mana": 6,
+          "wisdom": 66
+        },
+        "includedTitleBonuses": {
+          "strength": 0,
+          "agility": 0,
+          "constitution": 0,
+          "vitality": 0,
+          "intellect": 0,
+          "willpower": 0,
+          "mana": 0,
+          "wisdom": 0
+        },
+        "includedTitleMultipliers": {
+          "strength": 0,
+          "agility": 0,
+          "constitution": 0,
+          "vitality": 0,
+          "intellect": 0,
+          "willpower": 0,
+          "mana": 0,
+          "wisdom": 0
+        }
+      }
+    },
+    "freePoints": {
+      "strength": 0,
+      "agility": 0,
+      "constitution": 0,
+      "vitality": 0,
+      "intellect": 0,
+      "willpower": 0,
+      "mana": 0,
+      "wisdom": 0
+    },
+    "statDerivations": [],
     "traits": {
       "current": 1,
       "max": 3,
       "items": [
-        { "name": "Primordial Will" }
+        {
+          "name": "Primordial Will",
+          "effects": [
+            {
+              "type": "stat_multiplier",
+              "stat": "willpower",
+              "multiplier": 3,
+              "description": "All Willpower gains are tripled"
+            },
+            {
+              "type": "redirect_free_points",
+              "toStat": "willpower",
+              "description": "Free points automatically go to Willpower"
+            }
+          ]
+        }
       ]
     },
     "titles": [
-      { "name": "Pathfinder", "isPrimary": false, "bonuses": [] },
-      { "name": "Unbound", "isPrimary": false, "bonuses": [] },
-      { "name": "One Against Many", "isPrimary": false, "bonuses": [] },
-      { "name": "Control Freak", "isPrimary": false, "bonuses": [] },
-      { "name": "Journeyman Ritualist", "isPrimary": false, "bonuses": [] },
-      { "name": "Gifted Mage", "isPrimary": false, "bonuses": [] },
-      { "name": "The Magician", "isPrimary": true, "bonuses": [] },
-      { "name": "Integration Champion", "isPrimary": false, "bonuses": [] },
-      { "name": "Iron Will", "isPrimary": false, "bonuses": [] }
+      {
+        "name": "Pathfinder",
+        "isPrimary": false,
+        "bonuses": [
+          {
+            "stat": "strength",
+            "additive": 10,
+            "multiplier": 0
+          },
+          {
+            "stat": "agility",
+            "additive": 10,
+            "multiplier": 0
+          },
+          {
+            "stat": "constitution",
+            "additive": 10,
+            "multiplier": 0
+          },
+          {
+            "stat": "vitality",
+            "additive": 10,
+            "multiplier": 0
+          },
+          {
+            "stat": "intellect",
+            "additive": 10,
+            "multiplier": 0
+          },
+          {
+            "stat": "willpower",
+            "additive": 10,
+            "multiplier": 0
+          },
+          {
+            "stat": "mana",
+            "additive": 10,
+            "multiplier": 0
+          },
+          {
+            "stat": "wisdom",
+            "additive": 10,
+            "multiplier": 0
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "name": "Unbound",
+        "isPrimary": false,
+        "bonuses": [
+          {
+            "stat": "strength",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "agility",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "constitution",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "vitality",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "intellect",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "willpower",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "mana",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "wisdom",
+            "additive": 5,
+            "multiplier": 0
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "name": "Control Freak",
+        "isPrimary": false,
+        "bonuses": [
+          {
+            "stat": "willpower",
+            "additive": 0,
+            "multiplier": 0.02
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "name": "One Against Many",
+        "isPrimary": false,
+        "bonuses": [
+          {
+            "stat": "strength",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "agility",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "constitution",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "vitality",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "intellect",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "willpower",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "mana",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "wisdom",
+            "additive": 5,
+            "multiplier": 0
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "name": "Journeyman Ritualist",
+        "isPrimary": false,
+        "bonuses": [
+          {
+            "stat": "strength",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "agility",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "constitution",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "vitality",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "intellect",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "willpower",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "mana",
+            "additive": 5,
+            "multiplier": 0
+          },
+          {
+            "stat": "wisdom",
+            "additive": 5,
+            "multiplier": 0
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "name": "Gifted Mage",
+        "isPrimary": false,
+        "bonuses": [
+          {
+            "stat": "intellect",
+            "additive": 10,
+            "multiplier": 0
+          },
+          {
+            "stat": "willpower",
+            "additive": 10,
+            "multiplier": 0
+          },
+          {
+            "stat": "mana",
+            "additive": 10,
+            "multiplier": 0
+          },
+          {
+            "stat": "wisdom",
+            "additive": 10,
+            "multiplier": 0
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "name": "The Magician",
+        "isPrimary": true,
+        "bonuses": [
+          {
+            "stat": "intellect",
+            "additive": 0,
+            "multiplier": 0.05
+          },
+          {
+            "stat": "willpower",
+            "additive": 0,
+            "multiplier": 0.05
+          },
+          {
+            "stat": "mana",
+            "additive": 0,
+            "multiplier": 0.05
+          },
+          {
+            "stat": "wisdom",
+            "additive": 0,
+            "multiplier": 0.05
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "name": "Integration Champion",
+        "isPrimary": false,
+        "bonuses": [],
+        "enabled": false
+      },
+      {
+        "name": "Iron Will",
+        "isPrimary": false,
+        "bonuses": [],
+        "enabled": false
+      }
     ],
     "bondSkills": [
       {
@@ -44,48 +391,185 @@
       }
     ],
     "activeSkills": [
-      { "name": "Mana Thread", "rank": "Journeyman", "level": 18, "advancement": false },
-      { "name": "Mana Infusion", "rank": "Journeyman", "level": 6, "advancement": false },
-      { "name": "Feather Step", "rank": "Novice", "level": 20, "advancement": true },
-      { "name": "Fractal Body", "rank": "Novice", "level": 12, "advancement": false },
-      { "name": "Parallel Mind", "rank": "Adept", "level": 2, "advancement": false },
-      { "name": "Intimidate", "rank": "Novice", "level": 5, "advancement": false },
-      { "name": "Spell Storage", "rank": "Novice", "level": 18, "advancement": false },
-      { "name": "Shrug Off", "rank": "Novice", "level": 17, "advancement": false },
-      { "name": "Running", "rank": "Novice", "level": 17, "advancement": false },
-      { "name": "Meditate", "rank": "Novice", "level": 15, "advancement": false },
-      { "name": "Mana Blade", "rank": "Novice", "level": 5, "advancement": false }
+      {
+        "name": "Mana Thread",
+        "rank": "Journeyman",
+        "level": 18,
+        "advancement": false
+      },
+      {
+        "name": "Mana Infusion",
+        "rank": "Journeyman",
+        "level": 6,
+        "advancement": false
+      },
+      {
+        "name": "Feather Step",
+        "rank": "Novice",
+        "level": 20,
+        "advancement": true
+      },
+      {
+        "name": "Fractal Body",
+        "rank": "Novice",
+        "level": 12,
+        "advancement": false
+      },
+      {
+        "name": "Parallel Mind",
+        "rank": "Adept",
+        "level": 2,
+        "advancement": false
+      },
+      {
+        "name": "Intimidate",
+        "rank": "Novice",
+        "level": 5,
+        "advancement": false
+      },
+      {
+        "name": "Spell Storage",
+        "rank": "Novice",
+        "level": 18,
+        "advancement": false
+      },
+      {
+        "name": "Shrug Off",
+        "rank": "Novice",
+        "level": 17,
+        "advancement": false
+      },
+      {
+        "name": "Running",
+        "rank": "Novice",
+        "level": 17,
+        "advancement": false
+      },
+      {
+        "name": "Meditate",
+        "rank": "Novice",
+        "level": 15,
+        "advancement": false
+      },
+      {
+        "name": "Mana Blade",
+        "rank": "Novice",
+        "level": 5,
+        "advancement": false
+      }
     ],
     "passiveSkills": [
-      { "name": "Sleep Resistance", "tier": "III" },
-      { "name": "Efficient Rites", "tier": "I" },
-      { "name": "Spell Weaving", "tier": "II" },
-      { "name": "Mana Conduit", "tier": "I" },
-      { "name": "Quick Recovery", "tier": "I" }
+      {
+        "name": "Sleep Resistance",
+        "tier": "III"
+      },
+      {
+        "name": "Efficient Rites",
+        "tier": "I"
+      },
+      {
+        "name": "Spell Weaving",
+        "tier": "II"
+      },
+      {
+        "name": "Mana Conduit",
+        "tier": "I"
+      },
+      {
+        "name": "Quick Recovery",
+        "tier": "I"
+      }
     ],
     "boundItems": [
-      { "name": "Spectral Eye of the Celestial Sage", "rank": "D", "type": "Growth Item (Unique)" },
-      { "name": "The Magician's Cap", "rank": "D", "type": "Growth Item" },
-      { "name": "Manifest Planetary Title", "rank": "Unique", "type": "Identification Item" }
+      {
+        "name": "Spectral Eye of the Celestial Sage",
+        "rank": "D",
+        "type": "Growth Item (Unique)"
+      },
+      {
+        "name": "The Magician's Cap",
+        "rank": "D",
+        "type": "Growth Item"
+      },
+      {
+        "name": "Manifest Planetary Title",
+        "rank": "Unique",
+        "type": "Identification Item"
+      }
     ]
   },
   "valtherion": {
     "name": "Valtherion",
-    "level": 1,
-    "class": "",
-    "classAdvancement": false,
-    "hp": { "current": 100, "max": 100 },
-    "mp": { "current": 100, "max": 100 },
-    "baseStats": {
-      "strength": 10,
-      "agility": 10,
-      "constitution": 10,
-      "vitality": 10,
-      "intellect": 10,
-      "willpower": 10,
-      "mana": 172,
-      "wisdom": 10
+    "level": 30,
+    "hp": {
+      "current": 100,
+      "max": 100
     },
+    "mp": {
+      "current": 100,
+      "max": 100
+    },
+    "classHistory": [
+      {
+        "name": "Wyrm",
+        "startLevel": 1,
+        "endLevel": 30,
+        "statsPerLevel": {
+          "constitution": 1,
+          "vitality": 1,
+          "wisdom": 1,
+          "mana": 1,
+          "willpower": 1,
+          "intellect": 1
+        }
+      },
+      {
+        "name": "Amphiptere",
+        "startLevel": 30,
+        "endLevel": 60,
+        "statsPerLevel": {
+          "constitution": 1,
+          "vitality": 2,
+          "intellect": 2,
+          "willpower": 1,
+          "mana": 4,
+          "wisdom": 2
+        }
+      }
+    ],
+    "levelSnapshots": {
+      "1": {
+        "strength": 5,
+        "agility": 12,
+        "constitution": 10,
+        "vitality": 12,
+        "intellect": 18,
+        "willpower": 15,
+        "mana": 30,
+        "wisdom": 21
+      },
+      "31": {
+        "strength": 5,
+        "agility": 12,
+        "constitution": 40,
+        "vitality": 43,
+        "intellect": 49,
+        "willpower": 45,
+        "mana": 63,
+        "wisdom": 52
+      }
+    },
+    "freePoints": {
+      "strength": 0,
+      "agility": 0,
+      "constitution": 0,
+      "vitality": 0,
+      "intellect": 0,
+      "willpower": 0,
+      "mana": 0,
+      "wisdom": 0
+    },
+    "statDerivations": [],
     "traits": {
       "current": 0,
       "max": 3,
@@ -95,7 +579,22 @@
     "bondSkills": [],
     "activeSkills": [],
     "passiveSkills": [],
-    "boundItems": []
+    "boundItems": [],
+    "statBoosts": [
+      {
+        "description": "Spirit Fruit (Amphiptere)",
+        "stat": "mana",
+        "additive": 5,
+        "multiplier": 0,
+        "enabled": false
+      },
+      {
+        "description": "Spirit Fruit (Amphiptere)",
+        "stat": "intellect",
+        "additive": 5,
+        "multiplier": 0,
+        "enabled": false
+      }
+    ]
   }
 }
-

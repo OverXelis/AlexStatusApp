@@ -21,8 +21,10 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Grid,
   Radio,
+  Tooltip,
+  Divider,
+  Switch,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -33,16 +35,16 @@ import {
   ArrowDownward as DownIcon,
 } from '@mui/icons-material';
 import { useCharacter } from '../context/CharacterContext';
-import { STAT_DISPLAY_NAMES } from '../utils/statCalculator';
+import { STAT_DISPLAY_NAMES, ALL_STATS } from '../utils/statCalculator';
 
-const STAT_OPTIONS = Object.entries(STAT_DISPLAY_NAMES).map(([key, label]) => ({
+const STAT_OPTIONS = ALL_STATS.map((key) => ({
   value: key,
-  label,
+  label: STAT_DISPLAY_NAMES[key],
 }));
 
 function TitleBonusEditor({ bonuses, onChange }) {
   const addBonus = () => {
-    onChange([...bonuses, { stat: 'strength', value: 0 }]);
+    onChange([...bonuses, { stat: 'strength', additive: 0, multiplier: 0 }]);
   };
 
   const updateBonus = (index, field, value) => {
@@ -60,12 +62,18 @@ function TitleBonusEditor({ bonuses, onChange }) {
       <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
         Stat Bonuses
       </Typography>
+      <Typography variant="caption" sx={{ display: 'block', mb: 2, color: 'text.disabled' }}>
+        Additive bonuses add flat values. Multipliers apply as (1 + value), e.g., 0.5 = +50%.
+      </Typography>
+      
       {bonuses.map((bonus, index) => (
-        <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <FormControl size="small" sx={{ minWidth: 120 }}>
+        <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, flexWrap: 'wrap' }}>
+          <FormControl size="small" sx={{ minWidth: 130 }}>
+            <InputLabel>Stat</InputLabel>
             <Select
               value={bonus.stat}
               onChange={(e) => updateBonus(index, 'stat', e.target.value)}
+              label="Stat"
             >
               {STAT_OPTIONS.map((option) => (
                 <MenuItem key={option.value} value={option.value}>
@@ -74,15 +82,31 @@ function TitleBonusEditor({ bonuses, onChange }) {
               ))}
             </Select>
           </FormControl>
-          <TextField
-            type="number"
-            label="Bonus"
-            value={bonus.value}
-            onChange={(e) => updateBonus(index, 'value', Number(e.target.value) || 0)}
-            size="small"
-            sx={{ width: 100 }}
-            inputProps={{ min: 0 }}
-          />
+          
+          <Tooltip title="Flat bonus added to stat" arrow>
+            <TextField
+              type="number"
+              label="Additive (+)"
+              value={bonus.additive || bonus.value || 0}
+              onChange={(e) => updateBonus(index, 'additive', Number(e.target.value) || 0)}
+              size="small"
+              sx={{ width: 110 }}
+              inputProps={{ step: 1 }}
+            />
+          </Tooltip>
+          
+          <Tooltip title="Multiplier bonus (0.5 = +50%)" arrow>
+            <TextField
+              type="number"
+              label="Multiplier (×)"
+              value={bonus.multiplier || 0}
+              onChange={(e) => updateBonus(index, 'multiplier', Number(e.target.value) || 0)}
+              size="small"
+              sx={{ width: 120 }}
+              inputProps={{ step: 0.1, min: 0 }}
+            />
+          </Tooltip>
+          
           <IconButton
             onClick={() => removeBonus(index)}
             size="small"
@@ -92,6 +116,7 @@ function TitleBonusEditor({ bonuses, onChange }) {
           </IconButton>
         </Box>
       ))}
+      
       <Button
         startIcon={<AddIcon />}
         onClick={addBonus}
@@ -112,7 +137,13 @@ function TitleDialog({ open, onClose, title, onSave }) {
   React.useEffect(() => {
     if (open) {
       setName(title?.name || '');
-      setBonuses(title?.bonuses || []);
+      // Convert legacy format if needed
+      const convertedBonuses = (title?.bonuses || []).map(b => ({
+        stat: b.stat,
+        additive: b.additive ?? b.value ?? 0,
+        multiplier: b.multiplier ?? 0,
+      }));
+      setBonuses(convertedBonuses);
     }
   }, [open, title]);
 
@@ -151,7 +182,7 @@ function TitleDialog({ open, onClose, title, onSave }) {
 }
 
 function Titles() {
-  const { alex, updateAlexTitles, alexTitleBonuses } = useCharacter();
+  const { alex, updateAlexTitles, alexTitleBonuses, alexTitleMultipliers } = useCharacter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(null);
   const [editingIndex, setEditingIndex] = useState(-1);
@@ -207,10 +238,23 @@ function Titles() {
     updateAlexTitles(newTitles);
   };
 
+  const handleToggleEnabled = (index) => {
+    const newTitles = [...titles];
+    // Default to true if enabled is undefined
+    const currentEnabled = newTitles[index].enabled !== false;
+    newTitles[index] = { ...newTitles[index], enabled: !currentEnabled };
+    updateAlexTitles(newTitles);
+  };
+
   // Calculate total bonuses for display
-  const totalBonusDisplay = Object.entries(alexTitleBonuses)
+  const additiveBonusDisplay = Object.entries(alexTitleBonuses || {})
     .filter(([_, value]) => value > 0)
     .map(([stat, value]) => `${STAT_DISPLAY_NAMES[stat]}: +${value}`)
+    .join(', ');
+
+  const multiplierBonusDisplay = Object.entries(alexTitleMultipliers || {})
+    .filter(([_, value]) => value > 0)
+    .map(([stat, value]) => `${STAT_DISPLAY_NAMES[stat]}: ×${(1 + value).toFixed(2)}`)
     .join(', ');
 
   return (
@@ -230,14 +274,21 @@ function Titles() {
           </Button>
         </Box>
         
-        {totalBonusDisplay && (
+        {(additiveBonusDisplay || multiplierBonusDisplay) && (
           <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(76, 175, 80, 0.1)', borderRadius: 1 }}>
             <Typography variant="subtitle2" sx={{ color: 'success.main', mb: 1 }}>
               Total Stat Bonuses from Titles:
             </Typography>
-            <Typography variant="body1" sx={{ color: 'success.light' }}>
-              {totalBonusDisplay}
-            </Typography>
+            {additiveBonusDisplay && (
+              <Typography variant="body2" sx={{ color: 'success.light' }}>
+                <strong>Additive:</strong> {additiveBonusDisplay}
+              </Typography>
+            )}
+            {multiplierBonusDisplay && (
+              <Typography variant="body2" sx={{ color: 'warning.light', mt: 0.5 }}>
+                <strong>Multipliers:</strong> {multiplierBonusDisplay}
+              </Typography>
+            )}
           </Box>
         )}
       </Paper>
@@ -253,6 +304,7 @@ function Titles() {
             <Table>
               <TableHead>
                 <TableRow>
+                  <TableCell sx={{ width: 70 }}>Enabled</TableCell>
                   <TableCell sx={{ width: 60 }}>Primary</TableCell>
                   <TableCell sx={{ width: 60 }}>Order</TableCell>
                   <TableCell>Title Name</TableCell>
@@ -266,12 +318,24 @@ function Titles() {
                     key={index}
                     sx={{
                       bgcolor: title.isPrimary ? 'rgba(201, 162, 39, 0.08)' : 'inherit',
+                      opacity: title.enabled === false ? 0.5 : 1,
                     }}
                   >
+                    <TableCell>
+                      <Tooltip title={title.enabled === false ? "Enable title" : "Disable title"} arrow>
+                        <Switch
+                          checked={title.enabled !== false}
+                          onChange={() => handleToggleEnabled(index)}
+                          size="small"
+                          color="success"
+                        />
+                      </Tooltip>
+                    </TableCell>
                     <TableCell>
                       <Radio
                         checked={title.isPrimary}
                         onChange={() => handleSetPrimary(index)}
+                        disabled={title.enabled === false}
                         sx={{
                           color: 'primary.main',
                           '&.Mui-checked': {
@@ -316,17 +380,29 @@ function Titles() {
                     <TableCell>
                       {title.bonuses && title.bonuses.length > 0 ? (
                         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                          {title.bonuses.map((bonus, i) => (
-                            <Chip
-                              key={i}
-                              label={`${STAT_DISPLAY_NAMES[bonus.stat]}: +${bonus.value}`}
-                              size="small"
-                              sx={{
-                                bgcolor: 'rgba(76, 175, 80, 0.2)',
-                                color: 'success.light',
-                              }}
-                            />
-                          ))}
+                          {title.bonuses.map((bonus, i) => {
+                            const additive = bonus.additive ?? bonus.value ?? 0;
+                            const multiplier = bonus.multiplier ?? 0;
+                            const parts = [];
+                            if (additive !== 0) parts.push(`+${additive}`);
+                            if (multiplier !== 0) parts.push(`×${(1 + multiplier).toFixed(2)}`);
+                            
+                            if (parts.length === 0) return null;
+                            
+                            return (
+                              <Chip
+                                key={i}
+                                label={`${STAT_DISPLAY_NAMES[bonus.stat]}: ${parts.join(', ')}`}
+                                size="small"
+                                sx={{
+                                  bgcolor: multiplier > 0 
+                                    ? 'rgba(255, 152, 0, 0.2)' 
+                                    : 'rgba(76, 175, 80, 0.2)',
+                                  color: multiplier > 0 ? 'warning.light' : 'success.light',
+                                }}
+                              />
+                            );
+                          })}
                         </Box>
                       ) : (
                         <Typography variant="body2" sx={{ color: 'text.disabled' }}>
@@ -370,4 +446,3 @@ function Titles() {
 }
 
 export default Titles;
-

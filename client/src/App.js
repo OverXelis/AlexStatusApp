@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Box, Tabs, Tab, Paper, Container, Typography, Alert, Snackbar } from '@mui/material';
 import {
   Assessment as StatsIcon,
-  AutoAwesome as AbilitiesIcon,
+  AutoAwesome as SkillsIcon,
   EmojiEvents as TitlesIcon,
   Pets as CompanionIcon,
   Preview as PreviewIcon,
@@ -35,17 +35,21 @@ function TabPanel({ children, value, index }) {
 
 function AppContent() {
   const [tabValue, setTabValue] = useState(0);
-  const { notification, clearNotification, loading, error } = useCharacter();
+  const { alex, valtherion, notification, clearNotification, loading, error } = useCharacter();
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
   };
 
+  // Dynamic character and companion names
+  const characterName = alex?.name || 'Character';
+  const companionName = valtherion?.name || 'Companion';
+
   const tabs = [
     { label: 'Basic Stats', icon: <StatsIcon /> },
-    { label: 'Abilities', icon: <AbilitiesIcon /> },
+    { label: 'Skills', icon: <SkillsIcon /> },
     { label: 'Titles', icon: <TitlesIcon /> },
-    { label: 'Valtherion', icon: <CompanionIcon /> },
+    { label: companionName, icon: <CompanionIcon /> },
     { label: 'Output', icon: <PreviewIcon /> },
     { label: 'History', icon: <HistoryIcon /> },
   ];
@@ -99,7 +103,7 @@ function AppContent() {
             letterSpacing: '0.1em',
           }}
         >
-          Status Screen
+          {characterName}
         </Typography>
         <Typography
           variant="subtitle1"
@@ -109,7 +113,7 @@ function AppContent() {
             mt: 0.5,
           }}
         >
-          Character Progression Tracker
+          Status Screen
         </Typography>
       </Paper>
 
@@ -219,4 +223,3 @@ function App() {
 }
 
 export default App;
-

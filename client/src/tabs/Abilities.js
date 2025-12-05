@@ -27,6 +27,7 @@ import {
   AccordionSummary,
   AccordionDetails,
   Chip,
+  Divider,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -40,23 +41,176 @@ import {
   Inventory as ItemIcon,
 } from '@mui/icons-material';
 import { useCharacter } from '../context/CharacterContext';
-import { SKILL_RANKS, PASSIVE_TIERS, STAT_DISPLAY_NAMES } from '../utils/statCalculator';
+import { 
+  SKILL_RANKS, 
+  PASSIVE_TIERS, 
+  STAT_DISPLAY_NAMES,
+  TRAIT_EFFECT_TYPES,
+  ALL_STATS,
+} from '../utils/statCalculator';
+
+// Trait Effect Editor Component
+function TraitEffectEditor({ effects, onChange }) {
+  const addEffect = () => {
+    onChange([...effects, { type: 'stat_multiplier', stat: 'willpower', multiplier: 1 }]);
+  };
+
+  const updateEffect = (index, updates) => {
+    const newEffects = [...effects];
+    newEffects[index] = { ...newEffects[index], ...updates };
+    onChange(newEffects);
+  };
+
+  const removeEffect = (index) => {
+    onChange(effects.filter((_, i) => i !== index));
+  };
+
+  const renderEffectFields = (effect, index) => {
+    switch (effect.type) {
+      case 'stat_multiplier':
+        return (
+          <>
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Stat</InputLabel>
+              <Select
+                value={effect.stat || 'willpower'}
+                onChange={(e) => updateEffect(index, { stat: e.target.value })}
+                label="Stat"
+              >
+                {ALL_STATS.map((stat) => (
+                  <MenuItem key={stat} value={stat}>{STAT_DISPLAY_NAMES[stat]}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              type="number"
+              label="Multiplier"
+              value={effect.multiplier || 1}
+              onChange={(e) => updateEffect(index, { multiplier: Number(e.target.value) || 1 })}
+              size="small"
+              sx={{ width: 100 }}
+              helperText="e.g., 3 = triple"
+            />
+          </>
+        );
+      case 'redirect_free_points':
+        return (
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>Redirect To</InputLabel>
+            <Select
+              value={effect.toStat || 'willpower'}
+              onChange={(e) => updateEffect(index, { toStat: e.target.value })}
+              label="Redirect To"
+            >
+              {ALL_STATS.map((stat) => (
+                <MenuItem key={stat} value={stat}>{STAT_DISPLAY_NAMES[stat]}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        );
+      case 'stat_derivation':
+        return (
+          <>
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Source</InputLabel>
+              <Select
+                value={effect.sourceStat || 'willpower'}
+                onChange={(e) => updateEffect(index, { sourceStat: e.target.value })}
+                label="Source"
+              >
+                {ALL_STATS.map((stat) => (
+                  <MenuItem key={stat} value={stat}>{STAT_DISPLAY_NAMES[stat]}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              type="number"
+              label="Percent"
+              value={effect.percent || 0}
+              onChange={(e) => updateEffect(index, { percent: Number(e.target.value) || 0 })}
+              size="small"
+              sx={{ width: 80 }}
+            />
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Target</InputLabel>
+              <Select
+                value={effect.targetStat || 'intellect'}
+                onChange={(e) => updateEffect(index, { targetStat: e.target.value })}
+                label="Target"
+              >
+                {ALL_STATS.map((stat) => (
+                  <MenuItem key={stat} value={stat}>{STAT_DISPLAY_NAMES[stat]}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Box sx={{ mt: 2 }}>
+      <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+        Trait Effects
+      </Typography>
+      {effects.map((effect, index) => (
+        <Box key={index} sx={{ mb: 2, p: 2, bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel>Effect Type</InputLabel>
+              <Select
+                value={effect.type}
+                onChange={(e) => updateEffect(index, { type: e.target.value })}
+                label="Effect Type"
+              >
+                {TRAIT_EFFECT_TYPES.map((type) => (
+                  <MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            {renderEffectFields(effect, index)}
+            <IconButton onClick={() => removeEffect(index)} size="small" color="error">
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Box>
+          <TextField
+            fullWidth
+            size="small"
+            label="Description (optional)"
+            value={effect.description || ''}
+            onChange={(e) => updateEffect(index, { description: e.target.value })}
+            placeholder="e.g., All Willpower gains are tripled"
+          />
+        </Box>
+      ))}
+      <Button startIcon={<AddIcon />} onClick={addEffect} size="small" variant="outlined">
+        Add Effect
+      </Button>
+    </Box>
+  );
+}
 
 // Trait Dialog
 function TraitDialog({ open, onClose, trait, onSave }) {
   const [name, setName] = useState(trait?.name || '');
+  const [effects, setEffects] = useState(trait?.effects || []);
 
   React.useEffect(() => {
-    if (open) setName(trait?.name || '');
+    if (open) {
+      setName(trait?.name || '');
+      setEffects(trait?.effects || []);
+    }
   }, [open, trait]);
 
   const handleSave = () => {
-    onSave({ name });
+    onSave({ name, effects });
     onClose();
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>{trait ? 'Edit Trait' : 'Add New Trait'}</DialogTitle>
       <DialogContent>
         <TextField
@@ -67,6 +221,7 @@ function TraitDialog({ open, onClose, trait, onSave }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
+        <TraitEffectEditor effects={effects} onChange={setEffects} />
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
@@ -292,7 +447,7 @@ function ItemDialog({ open, onClose, item, onSave }) {
 }
 
 function Abilities() {
-  const { alex, updateAlex } = useCharacter();
+  const { alex, updateAlex, updateAlexTraits } = useCharacter();
   
   // Dialog states
   const [traitDialogOpen, setTraitDialogOpen] = useState(false);
@@ -350,7 +505,7 @@ function Abilities() {
     
     traits.items = items;
     traits.current = items.length;
-    updateAlex({ traits });
+    updateAlexTraits(traits);
     setTraitDialogOpen(false);
   };
 
@@ -358,13 +513,27 @@ function Abilities() {
     const traits = { ...alex.traits };
     traits.items = (traits.items || []).filter((_, i) => i !== index);
     traits.current = traits.items.length;
-    updateAlex({ traits });
+    updateAlexTraits(traits);
   };
 
   const updateTraitMax = (value) => {
-    updateAlex({
-      traits: { ...alex.traits, max: Number(value) || 3 },
+    updateAlexTraits({
+      ...alex.traits,
+      max: Number(value) || 3,
     });
+  };
+
+  const getEffectSummary = (effect) => {
+    switch (effect.type) {
+      case 'stat_multiplier':
+        return `${STAT_DISPLAY_NAMES[effect.stat]} ×${effect.multiplier}`;
+      case 'redirect_free_points':
+        return `Free pts → ${STAT_DISPLAY_NAMES[effect.toStat]}`;
+      case 'stat_derivation':
+        return `${effect.percent}% ${STAT_DISPLAY_NAMES[effect.sourceStat]} → ${STAT_DISPLAY_NAMES[effect.targetStat]}`;
+      default:
+        return effect.description || 'Unknown effect';
+    }
   };
 
   if (!alex) return <Typography>Loading...</Typography>;
@@ -402,20 +571,58 @@ function Abilities() {
             </Button>
           </Box>
           {alex.traits?.items?.length > 0 ? (
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {alex.traits.items.map((trait, index) => (
-                <Chip
+                <Paper
                   key={index}
-                  label={`{${trait.name}}`}
-                  onDelete={() => handleDeleteTrait(index)}
-                  onClick={() => handleEdit(trait, index, setTraitDialogOpen)}
                   sx={{
-                    bgcolor: 'rgba(107, 91, 149, 0.2)',
-                    color: 'secondary.light',
-                    fontSize: '1rem',
-                    py: 2,
+                    p: 2,
+                    bgcolor: 'rgba(107, 91, 149, 0.15)',
+                    border: '1px solid',
+                    borderColor: 'secondary.dark',
                   }}
-                />
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Box>
+                      <Typography
+                        variant="h6"
+                        sx={{ color: 'secondary.light', mb: 1 }}
+                      >
+                        {`{${trait.name}}`}
+                      </Typography>
+                      {trait.effects && trait.effects.length > 0 && (
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                          {trait.effects.map((effect, i) => (
+                            <Chip
+                              key={i}
+                              label={getEffectSummary(effect)}
+                              size="small"
+                              sx={{
+                                bgcolor: 'rgba(201, 162, 39, 0.2)',
+                                color: 'primary.light',
+                              }}
+                            />
+                          ))}
+                        </Box>
+                      )}
+                    </Box>
+                    <Box>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEdit(trait, index, setTraitDialogOpen)}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleDeleteTrait(index)}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                </Paper>
               ))}
             </Box>
           ) : (
@@ -689,4 +896,3 @@ function Abilities() {
 }
 
 export default Abilities;
-

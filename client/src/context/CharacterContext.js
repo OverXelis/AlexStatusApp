@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
-import { calculateTitleBonuses, calculateTotalStats } from '../utils/statCalculator';
+import { 
+  calculateAllStats, 
+  calculateDerivedStats,
+  getTitleAdditiveBonuses,
+  getTitleMultiplierBonuses,
+  getCurrentClass,
+} from '../utils/statCalculator';
 
 const CharacterContext = createContext(null);
 
@@ -85,26 +91,62 @@ export function CharacterProvider({ children }) {
     setIsDirty(true);
   }, []);
 
-  // Update Alex's base stats
-  const updateAlexStat = useCallback((statName, value) => {
+  // Update Alex's free points for a stat
+  const updateAlexFreePoints = useCallback((statName, value) => {
     setAlex((prev) => ({
       ...prev,
-      baseStats: {
-        ...prev.baseStats,
+      freePoints: {
+        ...prev.freePoints,
         [statName]: Number(value) || 0,
       },
     }));
     setIsDirty(true);
   }, []);
 
-  // Update Valtherion's base stats
-  const updateValStat = useCallback((statName, value) => {
+  // Update Valtherion's free points
+  const updateValFreePoints = useCallback((statName, value) => {
     setValtherion((prev) => ({
       ...prev,
-      baseStats: {
-        ...prev.baseStats,
+      freePoints: {
+        ...prev.freePoints,
         [statName]: Number(value) || 0,
       },
+    }));
+    setIsDirty(true);
+  }, []);
+
+  // Update Alex's level
+  const updateAlexLevel = useCallback((level) => {
+    setAlex((prev) => ({
+      ...prev,
+      level: Number(level) || 1,
+    }));
+    setIsDirty(true);
+  }, []);
+
+  // Update Valtherion's level
+  const updateValLevel = useCallback((level) => {
+    setValtherion((prev) => ({
+      ...prev,
+      level: Number(level) || 1,
+    }));
+    setIsDirty(true);
+  }, []);
+
+  // Update Alex's class history
+  const updateAlexClassHistory = useCallback((classHistory) => {
+    setAlex((prev) => ({
+      ...prev,
+      classHistory,
+    }));
+    setIsDirty(true);
+  }, []);
+
+  // Update Alex's level snapshots
+  const updateAlexLevelSnapshots = useCallback((levelSnapshots) => {
+    setAlex((prev) => ({
+      ...prev,
+      levelSnapshots,
     }));
     setIsDirty(true);
   }, []);
@@ -118,44 +160,102 @@ export function CharacterProvider({ children }) {
     setIsDirty(true);
   }, []);
 
-  // Calculate Alex's title bonuses
-  const alexTitleBonuses = useMemo(() => {
-    if (!alex?.titles) return {};
-    return calculateTitleBonuses(alex.titles);
-  }, [alex?.titles]);
+  // Update Alex's traits
+  const updateAlexTraits = useCallback((traits) => {
+    setAlex((prev) => ({
+      ...prev,
+      traits,
+    }));
+    setIsDirty(true);
+  }, []);
 
-  // Calculate Alex's total stats (base + title bonuses)
-  const alexTotalStats = useMemo(() => {
-    if (!alex?.baseStats) return {};
-    return calculateTotalStats(alex.baseStats, alexTitleBonuses);
-  }, [alex?.baseStats, alexTitleBonuses]);
+  // Update Alex's stat derivations
+  const updateAlexStatDerivations = useCallback((statDerivations) => {
+    setAlex((prev) => ({
+      ...prev,
+      statDerivations,
+    }));
+    setIsDirty(true);
+  }, []);
 
-  // Calculate Valtherion's title bonuses
-  const valTitleBonuses = useMemo(() => {
-    if (!valtherion?.titles) return {};
-    return calculateTitleBonuses(valtherion.titles);
-  }, [valtherion?.titles]);
+  // ============================================
+  // CALCULATED VALUES - Using new leveling system
+  // ============================================
 
-  // Calculate Valtherion's total stats
-  const valTotalStats = useMemo(() => {
-    if (!valtherion?.baseStats) return {};
-    return calculateTotalStats(valtherion.baseStats, valTitleBonuses);
-  }, [valtherion?.baseStats, valTitleBonuses]);
+  // Calculate all of Alex's stats with the leveling system
+  const alexCalculation = useMemo(() => {
+    if (!alex) return { stats: {}, breakdowns: {} };
+    return calculateAllStats(alex);
+  }, [alex]);
+
+  const alexFinalStats = alexCalculation.stats;
+  const alexStatBreakdowns = alexCalculation.breakdowns;
+
+  // Calculate all of Valtherion's stats
+  const valCalculation = useMemo(() => {
+    if (!valtherion) return { stats: {}, breakdowns: {} };
+    return calculateAllStats(valtherion);
+  }, [valtherion]);
+
+  const valFinalStats = valCalculation.stats;
+  const valStatBreakdowns = valCalculation.breakdowns;
 
   // Calculate synced stats
-  // Alex gets half of Valtherion's Mana
+  // Alex gets half of Valtherion's final Mana
   const syncedManaForAlex = useMemo(() => {
-    if (!valtherion?.baseStats?.mana) return 0;
-    return Math.floor(valtherion.baseStats.mana / 2);
-  }, [valtherion?.baseStats?.mana]);
+    return Math.round((valFinalStats.mana || 0) / 2);
+  }, [valFinalStats.mana]);
 
-  // Valtherion gets half of Alex's Willpower
+  // Valtherion gets half of Alex's final Willpower
   const syncedWillpowerForVal = useMemo(() => {
-    if (!alex?.baseStats?.willpower) return 0;
-    return Math.floor(alex.baseStats.willpower / 2);
-  }, [alex?.baseStats?.willpower]);
+    return Math.round((alexFinalStats.willpower || 0) / 2);
+  }, [alexFinalStats.willpower]);
 
-  // Save snapshot
+  // Calculate derived stats (HP/MP) for Alex
+  const alexDerivedStats = useMemo(() => {
+    if (!alex) return { hp: { current: 0, max: 0 }, mp: { current: 0, max: 0 } };
+    return calculateDerivedStats(alexFinalStats, alex, syncedManaForAlex);
+  }, [alexFinalStats, alex, syncedManaForAlex]);
+
+  // Calculate derived stats for Valtherion
+  const valDerivedStats = useMemo(() => {
+    if (!valtherion) return { hp: { current: 0, max: 0 }, mp: { current: 0, max: 0 } };
+    return calculateDerivedStats(valFinalStats, valtherion, 0);
+  }, [valFinalStats, valtherion]);
+
+  // Get current class for Alex
+  const alexCurrentClass = useMemo(() => {
+    if (!alex) return null;
+    return getCurrentClass(alex.classHistory, alex.level);
+  }, [alex]);
+
+  // Get current class for Valtherion
+  const valCurrentClass = useMemo(() => {
+    if (!valtherion) return null;
+    return getCurrentClass(valtherion.classHistory, valtherion.level);
+  }, [valtherion]);
+
+  // Legacy: Title bonuses (additive only, for backwards compatibility)
+  const alexTitleBonuses = useMemo(() => {
+    if (!alex?.titles) return {};
+    return getTitleAdditiveBonuses(alex.titles);
+  }, [alex?.titles]);
+
+  const valTitleBonuses = useMemo(() => {
+    if (!valtherion?.titles) return {};
+    return getTitleAdditiveBonuses(valtherion.titles);
+  }, [valtherion?.titles]);
+
+  // Title multipliers
+  const alexTitleMultipliers = useMemo(() => {
+    if (!alex?.titles) return {};
+    return getTitleMultiplierBonuses(alex.titles);
+  }, [alex?.titles]);
+
+  // ============================================
+  // SNAPSHOT FUNCTIONS
+  // ============================================
+
   const saveSnapshot = useCallback(async (name) => {
     try {
       const response = await axios.post(`${API_BASE}/save`, {
@@ -171,7 +271,6 @@ export function CharacterProvider({ children }) {
     }
   }, [alex, valtherion]);
 
-  // Load snapshot
   const loadSnapshot = useCallback(async (id) => {
     try {
       const response = await axios.post(`${API_BASE}/snapshot/${id}/load`);
@@ -186,17 +285,24 @@ export function CharacterProvider({ children }) {
     }
   }, []);
 
-  // Clear notification
+  // ============================================
+  // NOTIFICATION FUNCTIONS
+  // ============================================
+
   const clearNotification = useCallback(() => {
     setNotification(null);
   }, []);
 
-  // Show notification
   const showNotification = useCallback((type, message) => {
     setNotification({ type, message });
   }, []);
 
+  // ============================================
+  // CONTEXT VALUE
+  // ============================================
+
   const value = {
+    // Raw data
     alex,
     valtherion,
     loading,
@@ -207,17 +313,36 @@ export function CharacterProvider({ children }) {
     // Update functions
     updateAlex,
     updateValtherion,
-    updateAlexStat,
-    updateValStat,
+    updateAlexFreePoints,
+    updateValFreePoints,
+    updateAlexLevel,
+    updateValLevel,
+    updateAlexClassHistory,
+    updateAlexLevelSnapshots,
     updateAlexTitles,
+    updateAlexTraits,
+    updateAlexStatDerivations,
     
-    // Calculated values
-    alexTitleBonuses,
-    alexTotalStats,
-    valTitleBonuses,
-    valTotalStats,
+    // Calculated values - NEW leveling system
+    alexFinalStats,
+    alexStatBreakdowns,
+    valFinalStats,
+    valStatBreakdowns,
+    alexDerivedStats,
+    valDerivedStats,
+    alexCurrentClass,
+    valCurrentClass,
+    
+    // Synced values
     syncedManaForAlex,
     syncedWillpowerForVal,
+    
+    // Legacy compatibility
+    alexTitleBonuses,
+    valTitleBonuses,
+    alexTitleMultipliers,
+    alexTotalStats: alexFinalStats, // Alias for backwards compat
+    valTotalStats: valFinalStats,
     
     // Snapshot functions
     saveSnapshot,
@@ -244,4 +369,3 @@ export function useCharacter() {
 }
 
 export default CharacterContext;
-

@@ -20,7 +20,17 @@ import { useCharacter } from '../context/CharacterContext';
 import { formatStatusScreen, formatBothStatusScreens } from '../utils/formatter';
 
 function OutputPreview() {
-  const { alex, valtherion, showNotification } = useCharacter();
+  const { 
+    alex, 
+    valtherion, 
+    showNotification,
+    alexFinalStats,
+    valFinalStats,
+    alexDerivedStats,
+    valDerivedStats,
+    syncedManaForAlex,
+  } = useCharacter();
+  
   const [viewMode, setViewMode] = useState('alex');
   const [copied, setCopied] = useState(false);
 
@@ -28,15 +38,28 @@ function OutputPreview() {
   const formattedOutput = useMemo(() => {
     switch (viewMode) {
       case 'alex':
-        return formatStatusScreen(alex);
+        return formatStatusScreen(alex, {
+          calculatedStats: alexFinalStats,
+          derivedStats: alexDerivedStats,
+          bondedMana: syncedManaForAlex,
+        });
       case 'valtherion':
-        return formatStatusScreen(valtherion);
+        return formatStatusScreen(valtherion, {
+          calculatedStats: valFinalStats,
+          derivedStats: valDerivedStats,
+        });
       case 'both':
-        return formatBothStatusScreens(alex, valtherion);
+        return formatBothStatusScreens(alex, valtherion, {
+          alexStats: alexFinalStats,
+          alexDerived: alexDerivedStats,
+          alexBondedMana: syncedManaForAlex,
+          valStats: valFinalStats,
+          valDerived: valDerivedStats,
+        });
       default:
         return '';
     }
-  }, [alex, valtherion, viewMode]);
+  }, [alex, valtherion, viewMode, alexFinalStats, valFinalStats, alexDerivedStats, valDerivedStats, syncedManaForAlex]);
 
   const handleCopy = async () => {
     try {
@@ -66,6 +89,36 @@ function OutputPreview() {
       default:
         return 'Status Screen';
     }
+  };
+
+  // Quick stats preview
+  const getQuickStats = () => {
+    if (viewMode === 'alex' || viewMode === 'both') {
+      return (
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            <strong>Alex:</strong> Lvl {alex?.level} | 
+            HP: {alexDerivedStats?.hp?.max} | 
+            MP: {alexDerivedStats?.mp?.max} | 
+            Will: {alexFinalStats?.willpower} | 
+            Int: {alexFinalStats?.intellect}
+          </Typography>
+        </Box>
+      );
+    }
+    if (viewMode === 'valtherion') {
+      return (
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            <strong>Valtherion:</strong> Lvl {valtherion?.level} | 
+            HP: {valDerivedStats?.hp?.max} | 
+            MP: {valDerivedStats?.mp?.max} | 
+            Mana: {valFinalStats?.mana}
+          </Typography>
+        </Box>
+      );
+    }
+    return null;
   };
 
   return (
@@ -124,6 +177,7 @@ function OutputPreview() {
             </Button>
           </Box>
         </Box>
+        {getQuickStats()}
       </Paper>
 
       {/* Preview Panel */}
@@ -171,7 +225,8 @@ function OutputPreview() {
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           <strong>Tip:</strong> The output is formatted for Notion with proper spacing and markdown. 
           Click "Copy Status" and paste directly into your document. The **bold** markers and 
-          spacing will render correctly in Notion.
+          spacing will render correctly in Notion. Stats are automatically calculated based on 
+          level, class, titles, and traits.
         </Typography>
       </Paper>
 
@@ -191,4 +246,3 @@ function OutputPreview() {
 }
 
 export default OutputPreview;
-
