@@ -407,26 +407,35 @@ function BasicStats() {
   };
 
   // Take a snapshot of current TOTAL stats at current level (includes all bonuses)
-  // Also track what title bonuses are "baked in" to avoid double-counting later
+  // Track title bonuses, trait multipliers, AND derivation bonuses to avoid double-counting later
   const handleTakeSnapshot = () => {
     const snapshots = { ...(alex.levelSnapshots || {}) };
     
-    // Get current title bonuses that will be included in this snapshot
-    const titleAdditiveBonuses = getTitleAdditiveBonuses(alex.titles);
+    // Get current title bonuses (raw values before trait multiplication)
+    const rawTitleBonuses = getTitleAdditiveBonuses(alex.titles);
     const titleMultiplierBonuses = getTitleMultiplierBonuses(alex.titles);
     
-    // Apply trait multiplier to title additives (to match what's in alexFinalStats)
+    // Get trait multipliers and derivation bonuses for each stat
+    const traitMultipliers = {};
     const includedTitleBonuses = {};
+    const includedDerivationBonuses = {};
     ALL_STATS.forEach(stat => {
       const traitMult = alexStatBreakdowns[stat]?.traitMultiplier || 1;
-      includedTitleBonuses[stat] = (titleAdditiveBonuses[stat] || 0) * traitMult;
+      traitMultipliers[stat] = traitMult;
+      // Also store the effective (trait-multiplied) value for backwards compatibility
+      includedTitleBonuses[stat] = (rawTitleBonuses[stat] || 0) * traitMult;
+      // Store derivation bonuses (e.g., 25% of Willpower → Intellect)
+      includedDerivationBonuses[stat] = alexStatBreakdowns[stat]?.derivationBonus || 0;
     });
     
     // Store the full snapshot with tracking of what's included
     snapshots[alex.level] = {
       stats: { ...alexFinalStats },
-      includedTitleBonuses: includedTitleBonuses,
+      rawTitleBonuses: { ...rawTitleBonuses },           // Raw title bonuses (before trait)
+      includedTraitMultipliers: traitMultipliers,        // Trait multipliers at snapshot time
+      includedTitleBonuses: includedTitleBonuses,        // Effective title bonuses (for backwards compat)
       includedTitleMultipliers: { ...titleMultiplierBonuses },
+      includedDerivationBonuses: includedDerivationBonuses, // Derivation bonuses baked into stats
     };
     
     updateAlexLevelSnapshots(snapshots);

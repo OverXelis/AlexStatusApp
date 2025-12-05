@@ -83,15 +83,29 @@ export function getSnapshotStatValue(snapshot, statName) {
 
 /**
  * Get the title bonuses that were baked into a snapshot
- * Returns { additive: number, multiplier: number } for the given stat
+ * Returns { additive: number, multiplier: number, rawAdditive: number, traitMultiplier: number } for the given stat
  */
 export function getSnapshotIncludedTitleBonuses(snapshot, statName) {
-  if (!snapshot) return { additive: 0, multiplier: 0 };
+  if (!snapshot) return { additive: 0, multiplier: 0, rawAdditive: 0, traitMultiplier: 1 };
   
-  const additive = snapshot.includedTitleBonuses?.[statName] || 0;
+  // New format stores raw values and trait multipliers
+  const rawAdditive = snapshot.rawTitleBonuses?.[statName] || 0;
+  const traitMult = snapshot.includedTraitMultipliers?.[statName] || 1;
+  
+  // For backwards compatibility, also check old format
+  const additive = snapshot.includedTitleBonuses?.[statName] || (rawAdditive * traitMult);
   const multiplier = snapshot.includedTitleMultipliers?.[statName] || 0;
   
-  return { additive, multiplier };
+  return { additive, multiplier, rawAdditive, traitMultiplier: traitMult };
+}
+
+/**
+ * Get derivation bonuses that were baked into a snapshot
+ * Returns the derivation bonus for the given stat
+ */
+export function getSnapshotIncludedDerivation(snapshot, statName) {
+  if (!snapshot) return 0;
+  return snapshot.includedDerivationBonuses?.[statName] || 0;
 }
 
 /**
@@ -357,6 +371,8 @@ export function calculateStatWithBreakdown(statName, character) {
     snapshotIncludedTitleMultiplier: 0,
     snapshotIncludedBoostAdditive: 0,
     snapshotIncludedBoostMultiplier: 0,
+    snapshotRawTitleAdditive: 0,      // Raw title bonus (before trait) in snapshot
+    snapshotTraitMultiplier: 1,        // Trait multiplier that was active at snapshot time
     redirectedFreePoints: 0,
     classScaling: 0,
     classScalingDetail: '',
@@ -389,6 +405,8 @@ export function calculateStatWithBreakdown(statName, character) {
     const includedTitles = getSnapshotIncludedTitleBonuses(snapshot, statName);
     breakdown.snapshotIncludedTitleAdditive = includedTitles.additive;
     breakdown.snapshotIncludedTitleMultiplier = includedTitles.multiplier;
+    breakdown.snapshotRawTitleAdditive = includedTitles.rawAdditive;
+    breakdown.snapshotTraitMultiplier = includedTitles.traitMultiplier;
     
     const includedBoosts = getSnapshotIncludedStatBoosts(snapshot, statName);
     breakdown.snapshotIncludedBoostAdditive = includedBoosts.additive;
@@ -431,7 +449,34 @@ export function calculateStatWithBreakdown(statName, character) {
 
   // 9. Calculate the NET new title/boost bonuses (current minus what's already in snapshot)
   // This prevents double-counting when snapshot already includes these bonuses
-  const netTitleAdditive = breakdown.titleAdditiveAfterTrait - breakdown.snapshotIncludedTitleAdditive;
+  // 
+  // For titles: if trait changed since snapshot, we need to calculate properly:
+  // - Snapshot has: snapshotRawTitle × snapshotTrait baked in
+  // - Current wants: currentRawTitle × currentTrait
+  // - Net = (currentRaw × currentTrait) - (snapshotRaw × snapshotTrait)
+  //
+  // If we have raw values stored (new format), use them for accurate calculation
+  // Otherwise fall back to comparing effective values (old format - may be inaccurate if trait changed)
+  let netTitleAdditive;
+  if (breakdown.snapshotRawTitleAdditive > 0 || breakdown.snapshotTraitMultiplier !== 1) {
+    // New format: we have raw title values and trait info from snapshot
+    // Compare raw title values to see if titles changed
+    const currentRaw = breakdown.titleAdditive;
+    const snapshotRaw = breakdown.snapshotRawTitleAdditive;
+    
+    // If raw title values are the same, titles haven't changed - net should be 0
+    // (the snapshot already has the full title contribution baked in)
+    if (currentRaw === snapshotRaw) {
+      netTitleAdditive = 0;
+    } else {
+      // Titles changed: add new titles with current trait, remove old with snapshot trait
+      netTitleAdditive = (currentRaw * breakdown.traitMultiplier) - (snapshotRaw * breakdown.snapshotTraitMultiplier);
+    }
+  } else {
+    // Old format: just compare effective values (may be wrong if trait changed, but backwards compatible)
+    netTitleAdditive = breakdown.titleAdditiveAfterTrait - breakdown.snapshotIncludedTitleAdditive;
+  }
+  
   const netBoostAdditive = breakdown.statBoostAdditive - breakdown.snapshotIncludedBoostAdditive;
 
   // 10. Calculate pre-multiplier value: base + gains×trait + NET title/boost additives
@@ -481,12 +526,28 @@ export function calculateAllStats(character) {
   });
 
   // Second pass: apply stat derivations (e.g., 25% of Willpower to Intellect)
+  // We need to avoid double-counting derivations that are already baked into snapshots
+  const snapshotLevel = getMostRecentSnapshotLevel(character.levelSnapshots, character.level);
+  const snapshot = snapshotLevel !== null ? character.levelSnapshots?.[snapshotLevel] : null;
+  
   const derivations = getStatDerivations(character.traits);
   derivations.forEach(({ sourceStat, targetStat, percent }) => {
     if (stats[sourceStat] !== undefined && stats[targetStat] !== undefined) {
       const bonus = Math.floor(stats[sourceStat] * (percent / 100));
-      stats[targetStat] += bonus;
+      
+      // Get derivation bonus that was already included in the snapshot
+      const snapshotDerivation = getSnapshotIncludedDerivation(snapshot, targetStat);
+      
+      // Net derivation = current derivation - what's already in snapshot
+      const netBonus = bonus - snapshotDerivation;
+      
+      if (netBonus !== 0) {
+        stats[targetStat] += netBonus;
+      }
+      
       breakdowns[targetStat].derivationBonus = bonus;
+      breakdowns[targetStat].snapshotDerivation = snapshotDerivation;
+      breakdowns[targetStat].netDerivation = netBonus;
       breakdowns[targetStat].derivationDetail = `${percent}% of ${STAT_DISPLAY_NAMES[sourceStat]}`;
       breakdowns[targetStat].final = stats[targetStat];
     }
@@ -497,8 +558,20 @@ export function calculateAllStats(character) {
     character.statDerivations.forEach(({ sourceStat, targetStat, percent }) => {
       if (stats[sourceStat] !== undefined && stats[targetStat] !== undefined) {
         const bonus = Math.floor(stats[sourceStat] * (percent / 100));
-        stats[targetStat] += bonus;
+        
+        // Get derivation bonus that was already included in the snapshot
+        const snapshotDerivation = getSnapshotIncludedDerivation(snapshot, targetStat);
+        
+        // Net derivation = current derivation - what's already in snapshot
+        const netBonus = bonus - snapshotDerivation;
+        
+        if (netBonus !== 0) {
+          stats[targetStat] += netBonus;
+        }
+        
         breakdowns[targetStat].derivationBonus = (breakdowns[targetStat].derivationBonus || 0) + bonus;
+        breakdowns[targetStat].snapshotDerivation = snapshotDerivation;
+        breakdowns[targetStat].netDerivation = (breakdowns[targetStat].netDerivation || 0) + netBonus;
         breakdowns[targetStat].derivationDetail = `${percent}% of ${STAT_DISPLAY_NAMES[sourceStat]}`;
         breakdowns[targetStat].final = stats[targetStat];
       }

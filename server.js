@@ -260,6 +260,18 @@ app.post('/api/import', async (req, res) => {
   }
 });
 
+// Shutdown endpoint - gracefully stops the server
+app.post('/api/shutdown', (req, res) => {
+  console.log('Shutdown requested via API');
+  res.json({ success: true, message: 'Server shutting down...' });
+  
+  // Give time for response to be sent, then exit
+  setTimeout(() => {
+    console.log('Goodbye!');
+    process.exit(0);
+  }, 500);
+});
+
 // Serve static files from React build in production
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'client/build')));

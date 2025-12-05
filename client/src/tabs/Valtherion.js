@@ -574,33 +574,41 @@ function Valtherion() {
   };
 
   // Take a snapshot of current TOTAL stats at current level (includes all bonuses)
-  // Take a snapshot of current TOTAL stats at current level (includes all bonuses)
-  // Also track what title/boost bonuses are "baked in" to avoid double-counting later
+  // Track title/boost bonuses, trait multipliers, AND derivation bonuses to avoid double-counting later
   const handleTakeSnapshot = () => {
     const snapshots = { ...(valtherion.levelSnapshots || {}) };
     
-    // Get current title bonuses (Valtherion might not have titles, but handle it anyway)
-    const titleAdditiveBonuses = getTitleAdditiveBonuses(valtherion.titles);
+    // Get current title bonuses (raw values - Valtherion might not have titles, but handle it anyway)
+    const rawTitleBonuses = getTitleAdditiveBonuses(valtherion.titles);
     const titleMultiplierBonuses = getTitleMultiplierBonuses(valtherion.titles);
     
     // Get current stat boost bonuses
     const statBoostAdditiveBonuses = getStatBoostAdditiveBonuses(valtherion.statBoosts);
     const statBoostMultiplierBonuses = getStatBoostMultiplierBonuses(valtherion.statBoosts);
     
-    // Apply trait multiplier to title additives (if any)
+    // Get trait multipliers and derivation bonuses for each stat
+    const traitMultipliers = {};
     const includedTitleBonuses = {};
+    const includedDerivationBonuses = {};
     ALL_STATS.forEach(stat => {
       const traitMult = valStatBreakdowns[stat]?.traitMultiplier || 1;
-      includedTitleBonuses[stat] = (titleAdditiveBonuses[stat] || 0) * traitMult;
+      traitMultipliers[stat] = traitMult;
+      // Also store the effective (trait-multiplied) value for backwards compatibility
+      includedTitleBonuses[stat] = (rawTitleBonuses[stat] || 0) * traitMult;
+      // Store derivation bonuses (e.g., % of one stat → another)
+      includedDerivationBonuses[stat] = valStatBreakdowns[stat]?.derivationBonus || 0;
     });
     
     // Store the full snapshot with tracking of what's included
     snapshots[valtherion.level] = {
       stats: { ...valFinalStats },
-      includedTitleBonuses: includedTitleBonuses,
+      rawTitleBonuses: { ...rawTitleBonuses },           // Raw title bonuses (before trait)
+      includedTraitMultipliers: traitMultipliers,        // Trait multipliers at snapshot time
+      includedTitleBonuses: includedTitleBonuses,        // Effective title bonuses (for backwards compat)
       includedTitleMultipliers: { ...titleMultiplierBonuses },
       includedStatBoostBonuses: { ...statBoostAdditiveBonuses },
       includedStatBoostMultipliers: { ...statBoostMultiplierBonuses },
+      includedDerivationBonuses: includedDerivationBonuses, // Derivation bonuses baked into stats
     };
     
     updateValtherion({ levelSnapshots: snapshots });

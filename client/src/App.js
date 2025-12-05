@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Tabs, Tab, Paper, Container, Typography, Alert, Snackbar } from '@mui/material';
+import { Box, Tabs, Tab, Paper, Container, Typography, Alert, Snackbar, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import {
   Assessment as StatsIcon,
   AutoAwesome as SkillsIcon,
@@ -7,7 +7,9 @@ import {
   Pets as CompanionIcon,
   Preview as PreviewIcon,
   History as HistoryIcon,
+  PowerSettingsNew as ShutdownIcon,
 } from '@mui/icons-material';
+import axios from 'axios';
 import { CharacterProvider, useCharacter } from './context/CharacterContext';
 import BasicStats from './tabs/BasicStats';
 import Abilities from './tabs/Abilities';
@@ -35,10 +37,21 @@ function TabPanel({ children, value, index }) {
 
 function AppContent() {
   const [tabValue, setTabValue] = useState(0);
+  const [shutdownDialogOpen, setShutdownDialogOpen] = useState(false);
   const { alex, valtherion, notification, clearNotification, loading, error } = useCharacter();
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
+  };
+
+  const handleShutdown = async () => {
+    try {
+      await axios.post('/api/shutdown');
+      // Show a message that the server is shutting down
+      setShutdownDialogOpen(false);
+    } catch (err) {
+      console.log('Server shutdown initiated');
+    }
   };
 
   // Dynamic character and companion names
@@ -91,8 +104,28 @@ function AppContent() {
           borderRadius: 0,
           py: 2,
           px: 3,
+          position: 'relative',
         }}
       >
+        {/* Shutdown Button */}
+        <Tooltip title="Shutdown Server">
+          <IconButton
+            onClick={() => setShutdownDialogOpen(true)}
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              color: 'text.secondary',
+              '&:hover': {
+                color: 'error.main',
+                backgroundColor: 'rgba(244, 67, 54, 0.1)',
+              },
+            }}
+          >
+            <ShutdownIcon />
+          </IconButton>
+        </Tooltip>
+
         <Typography
           variant="h3"
           component="h1"
@@ -210,6 +243,22 @@ function AppContent() {
           {notification?.message}
         </Alert>
       </Snackbar>
+
+      {/* Shutdown Confirmation Dialog */}
+      <Dialog open={shutdownDialogOpen} onClose={() => setShutdownDialogOpen(false)}>
+        <DialogTitle>Shutdown Server?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            This will stop both the backend server and close the app. You'll need to run <code>npm start</code> again to restart.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShutdownDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleShutdown} color="error" variant="contained">
+            Shutdown
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
