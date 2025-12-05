@@ -1,5 +1,17 @@
 /**
  * Comprehensive stat calculation engine for litRPG leveling system
+ * 
+ * ============================================================================
+ * TEMPLATE NOTE FOR DEVELOPERS:
+ * ============================================================================
+ * This utility is FULLY GENERIC and works with any character object. It does
+ * not contain any character-specific logic. When adding new calculation
+ * features, keep them generic by operating on character objects rather than
+ * specific named characters.
+ * 
+ * All functions expect a character object with structure matching the schema
+ * defined in data/current.json (under "main" or "companion" keys).
+ * ============================================================================
  */
 
 /**

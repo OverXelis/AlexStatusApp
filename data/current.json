@@ -1,5 +1,5 @@
 {
-  "alex": {
+  "main": {
     "name": "Alex Moore",
     "level": 60,
     "hp": {
@@ -476,16 +476,11 @@
         "rank": "Journeyman",
         "level": 16,
         "advancement": false,
+        "description": "",
         "primaryStatShared": "Mana"
       }
     ],
     "activeSkills": [
-      {
-        "name": "Mana Thread",
-        "rank": "Journeyman",
-        "level": 18,
-        "advancement": false
-      },
       {
         "name": "Mana Infusion",
         "rank": "Journeyman",
@@ -587,7 +582,7 @@
       }
     ]
   },
-  "valtherion": {
+  "companion": {
     "name": "Valtherion",
     "level": 60,
     "hp": {

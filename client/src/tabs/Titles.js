@@ -1,3 +1,20 @@
+/**
+ * Titles Tab Component
+ * 
+ * ============================================================================
+ * TEMPLATE NOTE FOR DEVELOPERS:
+ * ============================================================================
+ * This tab manages titles for the main character. It currently uses LEGACY
+ * variable names (alex, updateAlexTitles) via context aliases.
+ * 
+ * For NEW CODE, prefer using generic names:
+ * - main instead of alex
+ * - updateMainTitles instead of updateAlexTitles
+ * 
+ * See DEVELOPMENT.md for full guidelines on template-aware development.
+ * ============================================================================
+ */
+
 import React, { useState } from 'react';
 import {
   Box,
@@ -23,7 +40,6 @@ import {
   DialogActions,
   Radio,
   Tooltip,
-  Divider,
   Switch,
 } from '@mui/material';
 import {

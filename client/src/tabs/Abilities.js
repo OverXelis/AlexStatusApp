@@ -1,3 +1,20 @@
+/**
+ * Abilities Tab Component (Skills, Traits, Items)
+ * 
+ * ============================================================================
+ * TEMPLATE NOTE FOR DEVELOPERS:
+ * ============================================================================
+ * This tab manages skills, traits, and bound items for the main character.
+ * It currently uses LEGACY variable names (alex, updateAlex) via context aliases.
+ * 
+ * For NEW CODE, prefer using generic names:
+ * - main instead of alex
+ * - updateMain instead of updateAlex
+ * 
+ * See DEVELOPMENT.md for full guidelines on template-aware development.
+ * ============================================================================
+ */
+
 import React, { useState } from 'react';
 import {
   Box,
@@ -27,7 +44,9 @@ import {
   AccordionSummary,
   AccordionDetails,
   Chip,
-  Divider,
+  Tooltip,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -39,6 +58,10 @@ import {
   FlashOn as ActiveIcon,
   Shield as PassiveIcon,
   Inventory as ItemIcon,
+  ContentCopy as CopyIcon,
+  CardGiftcard as SkillOfferedIcon,
+  TrendingUp as LevelUpIcon,
+  Upgrade as AdvanceIcon,
 } from '@mui/icons-material';
 import { useCharacter } from '../context/CharacterContext';
 import { 
@@ -233,12 +256,156 @@ function TraitDialog({ open, onClose, trait, onSave }) {
   );
 }
 
+// System Prompt Dialog - for copying skill-related story prompts
+function SystemPromptDialog({ open, onClose, type, skill, onCopySuccess }) {
+  const getPromptContent = () => {
+    if (!skill) return '';
+    
+    const skillName = skill.name;
+    
+    switch (type) {
+      case 'offered':
+        return `***
+
+
+
+**New Skill Learned:** ${skillName} (Novice - Level 1)
+
+**Do you accept? Yes/ No?**
+
+***`;
+      
+      case 'levelup':
+        return `***
+
+
+
+**Congratulations, ${skillName} has leveled up!**
+
+***`;
+      
+      case 'advancement':
+        return `***
+
+
+
+**Congratulations, ${skillName} has leveled up!**
+
+You have reached the Tier threshold of an active skill. Would you like to advance or evolve this skill? 
+
+
+
+Advance: This skill stays the same and advances to an improved version in the same tree.
+
+
+
+Evolve: This skill changes based on the different ways you may have used it or pushed the bounds of its purpose. You will lose levels in this skill if you choose this option. 
+
+
+
+Advance / Evolve?
+
+
+
+***
+
+
+
+---
+
+
+
+***
+
+
+
+Analyzing skill usage…
+
+**New Skill Learned:** [insert skill name] ([insert rank])
+
+
+
+ **[insert skill name] -** [skill description]
+
+
+
+***`;
+      
+      default:
+        return '';
+    }
+  };
+
+  const getTitle = () => {
+    switch (type) {
+      case 'offered': return 'Skill Offered Prompt';
+      case 'levelup': return 'Skill Level Up Prompt';
+      case 'advancement': return 'Skill Advancement Prompt';
+      default: return 'System Prompt';
+    }
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(getPromptContent());
+      onCopySuccess?.('Prompt copied to clipboard!');
+      onClose();
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle sx={{ color: 'primary.main' }}>{getTitle()}</DialogTitle>
+      <DialogContent>
+        <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+          Copy this prompt for <strong>{skill?.name}</strong> and paste into Notion.
+        </Typography>
+        <Box
+          component="pre"
+          sx={{
+            fontFamily: '"JetBrains Mono", "Courier New", monospace',
+            fontSize: '0.9rem',
+            lineHeight: 1.6,
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            color: 'text.primary',
+            m: 0,
+            p: 2,
+            bgcolor: 'rgba(0, 0, 0, 0.3)',
+            borderRadius: 1,
+            border: '1px solid',
+            borderColor: 'divider',
+            maxHeight: '400px',
+            overflow: 'auto',
+          }}
+        >
+          {getPromptContent()}
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Close</Button>
+        <Button 
+          onClick={handleCopy} 
+          variant="contained" 
+          startIcon={<CopyIcon />}
+          sx={{ bgcolor: 'success.main', '&:hover': { bgcolor: 'success.dark' } }}
+        >
+          Copy to Clipboard
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
 // Skill Dialog (for Active and Bond skills)
 function SkillDialog({ open, onClose, skill, onSave, isBondSkill = false }) {
   const [name, setName] = useState(skill?.name || '');
   const [rank, setRank] = useState(skill?.rank || 'Novice');
   const [level, setLevel] = useState(skill?.level || 1);
   const [advancement, setAdvancement] = useState(skill?.advancement || false);
+  const [description, setDescription] = useState(skill?.description || '');
   const [primaryStatShared, setPrimaryStatShared] = useState(skill?.primaryStatShared || '');
 
   React.useEffect(() => {
@@ -247,12 +414,13 @@ function SkillDialog({ open, onClose, skill, onSave, isBondSkill = false }) {
       setRank(skill?.rank || 'Novice');
       setLevel(skill?.level || 1);
       setAdvancement(skill?.advancement || false);
+      setDescription(skill?.description || '');
       setPrimaryStatShared(skill?.primaryStatShared || '');
     }
   }, [open, skill]);
 
   const handleSave = () => {
-    const skillData = { name, rank, level, advancement };
+    const skillData = { name, rank, level, advancement, description };
     if (isBondSkill) {
       skillData.primaryStatShared = primaryStatShared;
     }
@@ -295,6 +463,18 @@ function SkillDialog({ open, onClose, skill, onSave, isBondSkill = false }) {
             />
           </Grid>
           <Grid item xs={12}>
+            <TextField
+              label="Description"
+              fullWidth
+              multiline
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Enter a description for this skill (shown on hover)"
+              helperText="This description will appear when hovering over the skill"
+            />
+          </Grid>
+          <Grid item xs={12}>
             <FormControlLabel
               control={
                 <Checkbox
@@ -333,16 +513,18 @@ function SkillDialog({ open, onClose, skill, onSave, isBondSkill = false }) {
 function PassiveDialog({ open, onClose, skill, onSave }) {
   const [name, setName] = useState(skill?.name || '');
   const [tier, setTier] = useState(skill?.tier || 'I');
+  const [description, setDescription] = useState(skill?.description || '');
 
   React.useEffect(() => {
     if (open) {
       setName(skill?.name || '');
       setTier(skill?.tier || 'I');
+      setDescription(skill?.description || '');
     }
   }, [open, skill]);
 
   const handleSave = () => {
-    onSave({ name, tier });
+    onSave({ name, tier, description });
     onClose();
   };
 
@@ -369,6 +551,18 @@ function PassiveDialog({ open, onClose, skill, onSave }) {
                 ))}
               </Select>
             </FormControl>
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              label="Description"
+              fullWidth
+              multiline
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Enter a description for this skill (shown on hover)"
+              helperText="This description will appear when hovering over the skill"
+            />
           </Grid>
         </Grid>
       </DialogContent>
@@ -456,6 +650,14 @@ function Abilities() {
   const [passiveDialogOpen, setPassiveDialogOpen] = useState(false);
   const [itemDialogOpen, setItemDialogOpen] = useState(false);
   
+  // System prompt dialog state
+  const [promptDialogOpen, setPromptDialogOpen] = useState(false);
+  const [promptType, setPromptType] = useState('offered');
+  const [promptSkill, setPromptSkill] = useState(null);
+  
+  // Snackbar state for copy feedback
+  const [snackbar, setSnackbar] = useState({ open: false, message: '' });
+  
   // Editing states
   const [editingItem, setEditingItem] = useState(null);
   const [editingIndex, setEditingIndex] = useState(-1);
@@ -490,6 +692,17 @@ function Abilities() {
   const handleDelete = (type, index) => {
     const items = (alex[type] || []).filter((_, i) => i !== index);
     updateAlex({ [type]: items });
+  };
+
+  // System prompt handlers
+  const openPromptDialog = (skill, type) => {
+    setPromptSkill(skill);
+    setPromptType(type);
+    setPromptDialogOpen(true);
+  };
+
+  const handleCopySuccess = (message) => {
+    setSnackbar({ open: true, message });
   };
 
   // Traits handlers
@@ -658,22 +871,37 @@ function Abilities() {
                     <TableCell>Rank</TableCell>
                     <TableCell>Level</TableCell>
                     <TableCell>Primary Stat</TableCell>
+                    <TableCell>Actions</TableCell>
+                    <TableCell>Prompts</TableCell>
                     <TableCell>Adv.</TableCell>
-                    <TableCell width={80}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {alex.bondSkills.map((skill, index) => (
                     <TableRow key={index}>
-                      <TableCell>[{skill.name}]</TableCell>
+                      <TableCell>
+                        {skill.description ? (
+                          <Tooltip
+                            title={
+                              <Box sx={{ p: 1 }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                                  [{skill.name}]
+                                </Typography>
+                                <Typography variant="body2">{skill.description}</Typography>
+                              </Box>
+                            }
+                            arrow
+                            placement="right"
+                          >
+                            <span style={{ cursor: 'help' }}>[{skill.name}]</span>
+                          </Tooltip>
+                        ) : (
+                          <span>[{skill.name}]</span>
+                        )}
+                      </TableCell>
                       <TableCell>{skill.rank}</TableCell>
                       <TableCell>{skill.level}</TableCell>
                       <TableCell>{skill.primaryStatShared || '-'}</TableCell>
-                      <TableCell>
-                        {skill.advancement && (
-                          <Chip label="+" size="small" sx={{ bgcolor: 'warning.main', color: 'black' }} />
-                        )}
-                      </TableCell>
                       <TableCell>
                         <IconButton size="small" onClick={() => handleEdit(skill, index, setBondDialogOpen)}>
                           <EditIcon fontSize="small" />
@@ -681,6 +909,42 @@ function Abilities() {
                         <IconButton size="small" color="error" onClick={() => handleDelete('bondSkills', index)}>
                           <DeleteIcon fontSize="small" />
                         </IconButton>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 0.5 }}>
+                          <Tooltip title="Skill Offered Prompt">
+                            <IconButton 
+                              size="small" 
+                              onClick={() => openPromptDialog(skill, 'offered')}
+                              sx={{ color: 'success.main' }}
+                            >
+                              <SkillOfferedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Skill Level Up Prompt">
+                            <IconButton 
+                              size="small" 
+                              onClick={() => openPromptDialog(skill, 'levelup')}
+                              sx={{ color: 'info.main' }}
+                            >
+                              <LevelUpIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Advancement Offered Prompt">
+                            <IconButton 
+                              size="small" 
+                              onClick={() => openPromptDialog(skill, 'advancement')}
+                              sx={{ color: 'warning.main' }}
+                            >
+                              <AdvanceIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        {skill.advancement && (
+                          <Chip label="+" size="small" sx={{ bgcolor: 'warning.main', color: 'black' }} />
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -719,21 +983,36 @@ function Abilities() {
                     <TableCell>Skill</TableCell>
                     <TableCell>Rank</TableCell>
                     <TableCell>Level</TableCell>
+                    <TableCell>Actions</TableCell>
+                    <TableCell>Prompts</TableCell>
                     <TableCell>Adv.</TableCell>
-                    <TableCell width={80}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {alex.activeSkills.map((skill, index) => (
                     <TableRow key={index}>
-                      <TableCell>[{skill.name}]</TableCell>
-                      <TableCell>{skill.rank}</TableCell>
-                      <TableCell>{skill.level}</TableCell>
                       <TableCell>
-                        {skill.advancement && (
-                          <Chip label="+" size="small" sx={{ bgcolor: 'warning.main', color: 'black' }} />
+                        {skill.description ? (
+                          <Tooltip
+                            title={
+                              <Box sx={{ p: 1 }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                                  [{skill.name}]
+                                </Typography>
+                                <Typography variant="body2">{skill.description}</Typography>
+                              </Box>
+                            }
+                            arrow
+                            placement="right"
+                          >
+                            <span style={{ cursor: 'help' }}>[{skill.name}]</span>
+                          </Tooltip>
+                        ) : (
+                          <span>[{skill.name}]</span>
                         )}
                       </TableCell>
+                      <TableCell>{skill.rank}</TableCell>
+                      <TableCell>{skill.level}</TableCell>
                       <TableCell>
                         <IconButton size="small" onClick={() => handleEdit(skill, index, setActiveDialogOpen)}>
                           <EditIcon fontSize="small" />
@@ -741,6 +1020,42 @@ function Abilities() {
                         <IconButton size="small" color="error" onClick={() => handleDelete('activeSkills', index)}>
                           <DeleteIcon fontSize="small" />
                         </IconButton>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 0.5 }}>
+                          <Tooltip title="Skill Offered Prompt">
+                            <IconButton 
+                              size="small" 
+                              onClick={() => openPromptDialog(skill, 'offered')}
+                              sx={{ color: 'success.main' }}
+                            >
+                              <SkillOfferedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Skill Level Up Prompt">
+                            <IconButton 
+                              size="small" 
+                              onClick={() => openPromptDialog(skill, 'levelup')}
+                              sx={{ color: 'info.main' }}
+                            >
+                              <LevelUpIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Advancement Offered Prompt">
+                            <IconButton 
+                              size="small" 
+                              onClick={() => openPromptDialog(skill, 'advancement')}
+                              sx={{ color: 'warning.main' }}
+                            >
+                              <AdvanceIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        {skill.advancement && (
+                          <Chip label="+" size="small" sx={{ bgcolor: 'warning.main', color: 'black' }} />
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -778,13 +1093,32 @@ function Abilities() {
                   <TableRow>
                     <TableCell>Skill</TableCell>
                     <TableCell>Tier</TableCell>
-                    <TableCell width={80}>Actions</TableCell>
+                    <TableCell>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {alex.passiveSkills.map((skill, index) => (
                     <TableRow key={index}>
-                      <TableCell>[{skill.name}]</TableCell>
+                      <TableCell>
+                        {skill.description ? (
+                          <Tooltip
+                            title={
+                              <Box sx={{ p: 1 }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                                  [{skill.name}]
+                                </Typography>
+                                <Typography variant="body2">{skill.description}</Typography>
+                              </Box>
+                            }
+                            arrow
+                            placement="right"
+                          >
+                            <span style={{ cursor: 'help' }}>[{skill.name}]</span>
+                          </Tooltip>
+                        ) : (
+                          <span>[{skill.name}]</span>
+                        )}
+                      </TableCell>
                       <TableCell>Tier {skill.tier}</TableCell>
                       <TableCell>
                         <IconButton size="small" onClick={() => handleEdit(skill, index, setPassiveDialogOpen)}>
@@ -891,6 +1225,30 @@ function Abilities() {
         item={editingItem}
         onSave={(data) => handleSave('boundItems', data, setItemDialogOpen)}
       />
+      
+      {/* System Prompt Dialog */}
+      <SystemPromptDialog
+        open={promptDialogOpen}
+        onClose={() => setPromptDialogOpen(false)}
+        type={promptType}
+        skill={promptSkill}
+        onCopySuccess={handleCopySuccess}
+      />
+      
+      {/* Copy Success Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={2000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          severity="success" 
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

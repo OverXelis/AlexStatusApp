@@ -1,3 +1,21 @@
+/**
+ * Basic Stats Tab Component
+ * 
+ * ============================================================================
+ * TEMPLATE NOTE FOR DEVELOPERS:
+ * ============================================================================
+ * This tab displays the main character's stats. It currently uses LEGACY
+ * variable names (alex, updateAlex, etc.) which work via context aliases.
+ * 
+ * For NEW CODE, prefer using generic names:
+ * - main instead of alex
+ * - updateMain instead of updateAlex
+ * - mainFinalStats instead of alexFinalStats
+ * 
+ * See DEVELOPMENT.md for full guidelines on template-aware development.
+ * ============================================================================
+ */
+
 import React, { useState } from 'react';
 import {
   Box,

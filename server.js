@@ -1,3 +1,23 @@
+/**
+ * Character Status App - Backend Server
+ * 
+ * ============================================================================
+ * TEMPLATE NOTE FOR DEVELOPERS:
+ * ============================================================================
+ * This server is designed to be template-ready. When creating a new character
+ * app from this template:
+ * 
+ * 1. Edit /config/character.json to configure the character
+ * 2. The server reads character names from config for defaults
+ * 3. Data is stored with generic keys: "main" and "companion"
+ * 
+ * When adding NEW API ENDPOINTS, consider:
+ * - Use generic terminology (main/companion) not character-specific names
+ * - Check config for feature flags before exposing feature-specific endpoints
+ * - Document any new endpoints in this file
+ * ============================================================================
+ */
+
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -8,58 +28,128 @@ const { v4: uuidv4 } = require('uuid');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
+const CONFIG_DIR = path.join(__dirname, 'config');
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
-// Ensure data directory exists
+// Ensure directories exist
 fs.ensureDirSync(DATA_DIR);
+fs.ensureDirSync(CONFIG_DIR);
 
-// Initialize data files if they don't exist
+// File paths
 const currentFilePath = path.join(DATA_DIR, 'current.json');
 const snapshotsFilePath = path.join(DATA_DIR, 'snapshots.json');
+const configFilePath = path.join(CONFIG_DIR, 'character.json');
 
-const defaultCharacter = {
-  name: '',
+/**
+ * Load character configuration
+ * Used for getting default names and feature flags
+ */
+const loadConfig = () => {
+  try {
+    if (fs.existsSync(configFilePath)) {
+      return fs.readJsonSync(configFilePath);
+    }
+  } catch (err) {
+    console.warn('Could not load config file, using defaults');
+  }
+  
+  // Default config if file doesn't exist
+  return {
+    mainCharacter: { name: 'Character' },
+    companion: { enabled: false, name: 'Companion' }
+  };
+};
+
+/**
+ * Default character template
+ * Used when initializing a new character
+ * 
+ * TEMPLATE NOTE: This structure should match what the frontend expects.
+ * Add new fields here when adding features.
+ */
+const createDefaultCharacter = (name) => ({
+  name: name,
   level: 1,
   class: '',
   classAdvancement: false,
   hp: { current: 100, max: 100 },
   mp: { current: 100, max: 100 },
-  baseStats: {
-    strength: 10,
-    agility: 10,
-    constitution: 10,
-    vitality: 10,
-    intellect: 10,
-    willpower: 10,
-    mana: 10,
-    wisdom: 10
+  classHistory: [],
+  levelSnapshots: {},
+  freePoints: {
+    strength: 0,
+    agility: 0,
+    constitution: 0,
+    vitality: 0,
+    intellect: 0,
+    willpower: 0,
+    mana: 0,
+    wisdom: 0
   },
+  statDerivations: [],
   traits: { current: 0, max: 3, items: [] },
   titles: [],
   bondSkills: [],
   activeSkills: [],
   passiveSkills: [],
-  boundItems: []
-};
+  boundItems: [],
+  statBoosts: []
+});
 
+/**
+ * Initialize data files if they don't exist
+ * Uses config for character names
+ */
 const initializeDataFiles = async () => {
+  const config = loadConfig();
+  
   if (!await fs.pathExists(currentFilePath)) {
-    await fs.writeJson(currentFilePath, {
-      alex: { ...defaultCharacter, name: 'Alex Moore' },
-      valtherion: { ...defaultCharacter, name: 'Valtherion' }
-    }, { spaces: 2 });
+    const initialData = {
+      // TEMPLATE NOTE: Data uses generic keys "main" and "companion"
+      // The actual names come from config and are stored in the character object
+      main: createDefaultCharacter(config.mainCharacter?.name || 'Character'),
+    };
+    
+    // Only add companion if enabled in config
+    if (config.companion?.enabled) {
+      initialData.companion = createDefaultCharacter(config.companion?.name || 'Companion');
+    }
+    
+    await fs.writeJson(currentFilePath, initialData, { spaces: 2 });
   }
+  
   if (!await fs.pathExists(snapshotsFilePath)) {
     await fs.writeJson(snapshotsFilePath, { snapshots: [] }, { spaces: 2 });
   }
 };
 
+// ============================================================================
 // API Routes
+// ============================================================================
 
-// Get current character state
+/**
+ * GET /api/config
+ * Returns the character configuration
+ * Used by frontend to adapt UI to character settings
+ */
+app.get('/api/config', async (req, res) => {
+  try {
+    const config = loadConfig();
+    res.json(config);
+  } catch (error) {
+    console.error('Error reading config:', error);
+    res.status(500).json({ error: 'Failed to load configuration' });
+  }
+});
+
+/**
+ * GET /api/current
+ * Returns current character state
+ * Response shape: { main: {...}, companion: {...} } (companion only if enabled)
+ */
 app.get('/api/current', async (req, res) => {
   try {
     const data = await fs.readJson(currentFilePath);
@@ -70,7 +160,11 @@ app.get('/api/current', async (req, res) => {
   }
 });
 
-// Update current character state
+/**
+ * POST /api/update
+ * Updates current character state
+ * Expects: { main: {...}, companion: {...} }
+ */
 app.post('/api/update', async (req, res) => {
   try {
     const data = req.body;
@@ -82,7 +176,10 @@ app.post('/api/update', async (req, res) => {
   }
 });
 
-// Save a new snapshot
+/**
+ * POST /api/save
+ * Saves a new snapshot
+ */
 app.post('/api/save', async (req, res) => {
   try {
     const { name, data } = req.body;
@@ -114,20 +211,25 @@ app.post('/api/save', async (req, res) => {
   }
 });
 
-// Get all snapshots (metadata only for list view)
+/**
+ * GET /api/snapshots
+ * Returns all snapshots (metadata only for list view)
+ */
 app.get('/api/snapshots', async (req, res) => {
   try {
     const snapshotsData = await fs.readJson(snapshotsFilePath);
+    const config = loadConfig();
     
     // Return metadata with preview info
+    // TEMPLATE NOTE: Preview uses generic "main" key
     const snapshotsList = snapshotsData.snapshots.map(snapshot => ({
       id: snapshot.id,
       name: snapshot.name,
       createdAt: snapshot.createdAt,
       preview: {
-        alexLevel: snapshot.data?.alex?.level || 0,
-        alexClass: snapshot.data?.alex?.class || '',
-        valLevel: snapshot.data?.valtherion?.level || 0
+        mainLevel: snapshot.data?.main?.level || 0,
+        mainClass: snapshot.data?.main?.class || '',
+        companionLevel: snapshot.data?.companion?.level || 0
       }
     }));
     
@@ -138,7 +240,10 @@ app.get('/api/snapshots', async (req, res) => {
   }
 });
 
-// Get a specific snapshot by ID
+/**
+ * GET /api/snapshot/:id
+ * Returns a specific snapshot by ID
+ */
 app.get('/api/snapshot/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -157,7 +262,10 @@ app.get('/api/snapshot/:id', async (req, res) => {
   }
 });
 
-// Delete a snapshot
+/**
+ * DELETE /api/snapshot/:id
+ * Deletes a snapshot
+ */
 app.delete('/api/snapshot/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -179,7 +287,10 @@ app.delete('/api/snapshot/:id', async (req, res) => {
   }
 });
 
-// Load a snapshot into current state
+/**
+ * POST /api/snapshot/:id/load
+ * Loads a snapshot into current state
+ */
 app.post('/api/snapshot/:id/load', async (req, res) => {
   try {
     const { id } = req.params;
@@ -204,7 +315,10 @@ app.post('/api/snapshot/:id/load', async (req, res) => {
   }
 });
 
-// Export snapshot as JSON file download
+/**
+ * GET /api/snapshot/:id/export
+ * Exports a snapshot as JSON file download
+ */
 app.get('/api/snapshot/:id/export', async (req, res) => {
   try {
     const { id } = req.params;
@@ -227,7 +341,10 @@ app.get('/api/snapshot/:id/export', async (req, res) => {
   }
 });
 
-// Import a snapshot from JSON
+/**
+ * POST /api/import
+ * Imports a snapshot from JSON
+ */
 app.post('/api/import', async (req, res) => {
   try {
     const importedSnapshot = req.body;
@@ -260,7 +377,10 @@ app.post('/api/import', async (req, res) => {
   }
 });
 
-// Shutdown endpoint - gracefully stops the server
+/**
+ * POST /api/shutdown
+ * Gracefully stops the server
+ */
 app.post('/api/shutdown', (req, res) => {
   console.log('Shutdown requested via API');
   res.json({ success: true, message: 'Server shutting down...' });
@@ -286,6 +406,6 @@ initializeDataFiles().then(() => {
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     console.log(`Data directory: ${DATA_DIR}`);
+    console.log(`Config directory: ${CONFIG_DIR}`);
   });
 });
-

@@ -1,3 +1,20 @@
+/**
+ * Main Application Component
+ * 
+ * ============================================================================
+ * TEMPLATE NOTE FOR DEVELOPERS:
+ * ============================================================================
+ * This app uses configuration from /config/character.json for character names
+ * and feature flags. The companion tab is conditionally rendered based on
+ * config.companion.enabled.
+ * 
+ * When adding NEW TABS or FEATURES:
+ * - Check if the feature should be conditional (use isFeatureEnabled())
+ * - Use getMainName()/getCompanionName() for display labels
+ * - Add feature flags to config if the feature is optional
+ * ============================================================================
+ */
+
 import React, { useState } from 'react';
 import { Box, Tabs, Tab, Paper, Container, Typography, Alert, Snackbar, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import {
@@ -14,7 +31,7 @@ import { CharacterProvider, useCharacter } from './context/CharacterContext';
 import BasicStats from './tabs/BasicStats';
 import Abilities from './tabs/Abilities';
 import Titles from './tabs/Titles';
-import Valtherion from './tabs/Valtherion';
+import Companion from './tabs/Companion';
 import OutputPreview from './tabs/OutputPreview';
 import SaveHistory from './tabs/SaveHistory';
 
@@ -38,7 +55,17 @@ function TabPanel({ children, value, index }) {
 function AppContent() {
   const [tabValue, setTabValue] = useState(0);
   const [shutdownDialogOpen, setShutdownDialogOpen] = useState(false);
-  const { alex, valtherion, notification, clearNotification, loading, error } = useCharacter();
+  const { 
+    main, 
+    companion, 
+    notification, 
+    clearNotification, 
+    loading, 
+    error,
+    hasCompanion,
+    getMainName,
+    getCompanionName,
+  } = useCharacter();
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -47,25 +74,41 @@ function AppContent() {
   const handleShutdown = async () => {
     try {
       await axios.post('/api/shutdown');
-      // Show a message that the server is shutting down
       setShutdownDialogOpen(false);
     } catch (err) {
       console.log('Server shutdown initiated');
     }
   };
 
-  // Dynamic character and companion names
-  const characterName = alex?.name || 'Character';
-  const companionName = valtherion?.name || 'Companion';
+  // Dynamic character and companion names from config
+  const characterName = main?.name || getMainName();
+  const companionName = companion?.name || getCompanionName();
 
+  // Build tabs array - companion tab is conditional
   const tabs = [
     { label: 'Basic Stats', icon: <StatsIcon /> },
     { label: 'Skills', icon: <SkillsIcon /> },
     { label: 'Titles', icon: <TitlesIcon /> },
-    { label: companionName, icon: <CompanionIcon /> },
-    { label: 'Output', icon: <PreviewIcon /> },
-    { label: 'History', icon: <HistoryIcon /> },
   ];
+  
+  // Only add companion tab if companion is enabled in config
+  if (hasCompanion) {
+    tabs.push({ label: companionName, icon: <CompanionIcon /> });
+  }
+  
+  // Always add output and history tabs
+  tabs.push(
+    { label: 'Output', icon: <PreviewIcon /> },
+    { label: 'History', icon: <HistoryIcon /> }
+  );
+
+  // Calculate tab indices (they shift if companion is disabled)
+  const getTabIndex = (tabName) => {
+    const tabNames = ['stats', 'skills', 'titles'];
+    if (hasCompanion) tabNames.push('companion');
+    tabNames.push('output', 'history');
+    return tabNames.indexOf(tabName);
+  };
 
   if (loading) {
     return (
@@ -207,22 +250,24 @@ function AppContent() {
       {/* Main Content */}
       <Box sx={{ flex: 1, overflow: 'hidden' }}>
         <Container maxWidth="xl" sx={{ py: 3, height: '100%' }}>
-          <TabPanel value={tabValue} index={0}>
+          <TabPanel value={tabValue} index={getTabIndex('stats')}>
             <BasicStats />
           </TabPanel>
-          <TabPanel value={tabValue} index={1}>
+          <TabPanel value={tabValue} index={getTabIndex('skills')}>
             <Abilities />
           </TabPanel>
-          <TabPanel value={tabValue} index={2}>
+          <TabPanel value={tabValue} index={getTabIndex('titles')}>
             <Titles />
           </TabPanel>
-          <TabPanel value={tabValue} index={3}>
-            <Valtherion />
-          </TabPanel>
-          <TabPanel value={tabValue} index={4}>
+          {hasCompanion && (
+            <TabPanel value={tabValue} index={getTabIndex('companion')}>
+              <Companion />
+            </TabPanel>
+          )}
+          <TabPanel value={tabValue} index={getTabIndex('output')}>
             <OutputPreview />
           </TabPanel>
-          <TabPanel value={tabValue} index={5}>
+          <TabPanel value={tabValue} index={getTabIndex('history')}>
             <SaveHistory />
           </TabPanel>
         </Container>

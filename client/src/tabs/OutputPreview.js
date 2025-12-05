@@ -1,3 +1,24 @@
+/**
+ * Output Preview Tab Component
+ * 
+ * ============================================================================
+ * TEMPLATE NOTE FOR DEVELOPERS:
+ * ============================================================================
+ * This tab generates formatted status screen output. It currently uses LEGACY
+ * variable names (alex, valtherion) via context aliases.
+ * 
+ * For NEW CODE, prefer using generic names:
+ * - main instead of alex
+ * - companion instead of valtherion
+ * - getMainName() / getCompanionName() for display text
+ * 
+ * The formatter utility (formatter.js) may also need updates to use
+ * generic names for full template compatibility.
+ * 
+ * See DEVELOPMENT.md for full guidelines on template-aware development.
+ * ============================================================================
+ */
+
 import React, { useState, useMemo } from 'react';
 import {
   Box,

@@ -1,0 +1,58 @@
+{
+  "appTitle": "Status Screen",
+  
+  "mainCharacter": {
+    "name": "Alex Moore",
+    "defaultClass": "",
+    "pronouns": "he/him"
+  },
+  
+  "companion": {
+    "enabled": true,
+    "name": "Valtherion",
+    "type": "dragon",
+    "bondType": "dragon-rider",
+    "pronouns": "he/him"
+  },
+  
+  "bond": {
+    "enabled": true,
+    "syncRules": [
+      {
+        "description": "Main character receives half of companion's Mana",
+        "from": "companion",
+        "to": "main",
+        "sourceStat": "mana",
+        "targetStat": "mana",
+        "formula": "half"
+      },
+      {
+        "description": "Companion receives half of main character's Willpower",
+        "from": "main",
+        "to": "companion",
+        "sourceStat": "willpower",
+        "targetStat": "willpower",
+        "formula": "half"
+      }
+    ]
+  },
+  
+  "features": {
+    "traits": true,
+    "titles": true,
+    "bondSkills": true,
+    "activeSkills": true,
+    "passiveSkills": true,
+    "boundItems": true,
+    "statBoosts": true,
+    "classHistory": true,
+    "levelSnapshots": true
+  },
+  
+  "ui": {
+    "theme": "dark-fantasy",
+    "primaryColor": "#C9A227",
+    "accentColor": "#6B5B95"
+  }
+}
+

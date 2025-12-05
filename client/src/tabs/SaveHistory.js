@@ -1,3 +1,19 @@
+/**
+ * Save History Tab Component
+ * 
+ * ============================================================================
+ * TEMPLATE NOTE FOR DEVELOPERS:
+ * ============================================================================
+ * This tab manages snapshots and save history. Snapshots use generic data keys
+ * (main/companion) which works correctly with the new template system.
+ * 
+ * When loading legacy snapshots that used alex/valtherion keys, the server
+ * handles migration automatically.
+ * 
+ * See DEVELOPMENT.md for full guidelines on template-aware development.
+ * ============================================================================
+ */
+
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,

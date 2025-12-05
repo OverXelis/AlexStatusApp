@@ -1,3 +1,21 @@
+/**
+ * Companion Tab Component
+ * 
+ * ============================================================================
+ * TEMPLATE NOTE FOR DEVELOPERS:
+ * ============================================================================
+ * This tab displays the bonded companion's stats and abilities. It uses GENERIC
+ * variable names (companion) internally, with display names from config.
+ * 
+ * This tab is only shown when config.companion.enabled = true.
+ * 
+ * When adding NEW FEATURES for companions:
+ * - Use updateCompanion() for state changes
+ * - Use getCompanionName() for display labels
+ * - Consider if the feature should also exist for the main character
+ * ============================================================================
+ */
+
 import React, { useState } from 'react';
 import {
   Box,
@@ -232,7 +250,7 @@ function EvolutionDialog({ open, onClose, evolutionData, onSave, isEdit }) {
   );
 }
 
-// Snapshot Dialog for Valtherion
+// Snapshot Dialog for Companion
 function SnapshotDialog({ open, onClose, level, currentSnapshot, onSave }) {
   const [snapshotLevel, setSnapshotLevel] = useState(level || 1);
   const [stats, setStats] = useState({});
@@ -294,7 +312,7 @@ function SnapshotDialog({ open, onClose, level, currentSnapshot, onSave }) {
   );
 }
 
-// Skill Dialog for Valtherion
+// Skill Dialog for Companion
 function SkillDialog({ open, onClose, skill, onSave }) {
   const [name, setName] = useState(skill?.name || '');
   const [rank, setRank] = useState(skill?.rank || 'Novice');
@@ -487,17 +505,22 @@ function getCurrentEvolution(classHistory, level) {
   return classHistory[classHistory.length - 1];
 }
 
-function Valtherion() {
+function Companion() {
+  // Use GENERIC context values (preferred) with LEGACY aliases for backwards compatibility
   const {
-    valtherion,
-    alex,
-    updateValtherion,
-    valFinalStats,
-    valStatBreakdowns,
-    valDerivedStats,
-    syncedWillpowerForVal,
-    syncedManaForAlex,
-    alexFinalStats,
+    // Generic names (preferred)
+    companion,
+    main,
+    updateCompanion,
+    companionFinalStats,
+    companionStatBreakdowns,
+    companionDerivedStats,
+    syncedWillpowerForCompanion,
+    syncedManaForMain,
+    mainFinalStats,
+    getMainName,
+    getCompanionName,
+    hasBond,
   } = useCharacter();
 
   const [evolutionDialogOpen, setEvolutionDialogOpen] = useState(false);
@@ -512,12 +535,16 @@ function Valtherion() {
   const [editingBoost, setEditingBoost] = useState(null);
   const [editingBoostIndex, setEditingBoostIndex] = useState(-1);
 
-  if (!valtherion) {
+  // Get display names from config
+  const mainName = main?.name || getMainName();
+  const companionDisplayName = companion?.name || getCompanionName();
+
+  if (!companion) {
     return <Typography>Loading...</Typography>;
   }
 
   // Get current evolution
-  const currentEvolution = getCurrentEvolution(valtherion.classHistory, valtherion.level);
+  const currentEvolution = getCurrentEvolution(companion.classHistory, companion.level);
 
   // Evolution handlers
   const handleAddEvolution = () => {
@@ -533,20 +560,20 @@ function Valtherion() {
   };
 
   const handleSaveEvolution = (evolutionData) => {
-    const history = [...(valtherion.classHistory || [])];
+    const history = [...(companion.classHistory || [])];
     if (editingEvolutionIndex >= 0) {
       history[editingEvolutionIndex] = evolutionData;
     } else {
       history.push(evolutionData);
     }
     history.sort((a, b) => a.startLevel - b.startLevel);
-    updateValtherion({ classHistory: history });
+    updateCompanion({ classHistory: history });
     setEvolutionDialogOpen(false);
   };
 
   const handleDeleteEvolution = (index) => {
-    const history = (valtherion.classHistory || []).filter((_, i) => i !== index);
-    updateValtherion({ classHistory: history });
+    const history = (companion.classHistory || []).filter((_, i) => i !== index);
+    updateCompanion({ classHistory: history });
   };
 
   // Snapshot handlers
@@ -561,57 +588,54 @@ function Valtherion() {
   };
 
   const handleSaveSnapshot = (level, stats) => {
-    const snapshots = { ...(valtherion.levelSnapshots || {}) };
+    const snapshots = { ...(companion.levelSnapshots || {}) };
     snapshots[level] = stats;
-    updateValtherion({ levelSnapshots: snapshots });
+    updateCompanion({ levelSnapshots: snapshots });
     setSnapshotDialogOpen(false);
   };
 
   const handleDeleteSnapshot = (level) => {
-    const snapshots = { ...(valtherion.levelSnapshots || {}) };
+    const snapshots = { ...(companion.levelSnapshots || {}) };
     delete snapshots[level];
-    updateValtherion({ levelSnapshots: snapshots });
+    updateCompanion({ levelSnapshots: snapshots });
   };
 
   // Take a snapshot of current TOTAL stats at current level (includes all bonuses)
-  // Track title/boost bonuses, trait multipliers, AND derivation bonuses to avoid double-counting later
   const handleTakeSnapshot = () => {
-    const snapshots = { ...(valtherion.levelSnapshots || {}) };
+    const snapshots = { ...(companion.levelSnapshots || {}) };
     
-    // Get current title bonuses (raw values - Valtherion might not have titles, but handle it anyway)
-    const rawTitleBonuses = getTitleAdditiveBonuses(valtherion.titles);
-    const titleMultiplierBonuses = getTitleMultiplierBonuses(valtherion.titles);
+    // Get current title bonuses (raw values)
+    const rawTitleBonuses = getTitleAdditiveBonuses(companion.titles);
+    const titleMultiplierBonuses = getTitleMultiplierBonuses(companion.titles);
     
     // Get current stat boost bonuses
-    const statBoostAdditiveBonuses = getStatBoostAdditiveBonuses(valtherion.statBoosts);
-    const statBoostMultiplierBonuses = getStatBoostMultiplierBonuses(valtherion.statBoosts);
+    const statBoostAdditiveBonuses = getStatBoostAdditiveBonuses(companion.statBoosts);
+    const statBoostMultiplierBonuses = getStatBoostMultiplierBonuses(companion.statBoosts);
     
     // Get trait multipliers and derivation bonuses for each stat
     const traitMultipliers = {};
     const includedTitleBonuses = {};
     const includedDerivationBonuses = {};
     ALL_STATS.forEach(stat => {
-      const traitMult = valStatBreakdowns[stat]?.traitMultiplier || 1;
+      const traitMult = companionStatBreakdowns[stat]?.traitMultiplier || 1;
       traitMultipliers[stat] = traitMult;
-      // Also store the effective (trait-multiplied) value for backwards compatibility
       includedTitleBonuses[stat] = (rawTitleBonuses[stat] || 0) * traitMult;
-      // Store derivation bonuses (e.g., % of one stat → another)
-      includedDerivationBonuses[stat] = valStatBreakdowns[stat]?.derivationBonus || 0;
+      includedDerivationBonuses[stat] = companionStatBreakdowns[stat]?.derivationBonus || 0;
     });
     
     // Store the full snapshot with tracking of what's included
-    snapshots[valtherion.level] = {
-      stats: { ...valFinalStats },
-      rawTitleBonuses: { ...rawTitleBonuses },           // Raw title bonuses (before trait)
-      includedTraitMultipliers: traitMultipliers,        // Trait multipliers at snapshot time
-      includedTitleBonuses: includedTitleBonuses,        // Effective title bonuses (for backwards compat)
+    snapshots[companion.level] = {
+      stats: { ...companionFinalStats },
+      rawTitleBonuses: { ...rawTitleBonuses },
+      includedTraitMultipliers: traitMultipliers,
+      includedTitleBonuses: includedTitleBonuses,
       includedTitleMultipliers: { ...titleMultiplierBonuses },
       includedStatBoostBonuses: { ...statBoostAdditiveBonuses },
       includedStatBoostMultipliers: { ...statBoostMultiplierBonuses },
-      includedDerivationBonuses: includedDerivationBonuses, // Derivation bonuses baked into stats
+      includedDerivationBonuses: includedDerivationBonuses,
     };
     
-    updateValtherion({ levelSnapshots: snapshots });
+    updateCompanion({ levelSnapshots: snapshots });
   };
 
   // Bond skill handlers
@@ -628,19 +652,19 @@ function Valtherion() {
   };
 
   const handleSaveBondSkill = (data) => {
-    const skills = [...(valtherion.bondSkills || [])];
+    const skills = [...(companion.bondSkills || [])];
     if (editingSkillIndex >= 0) {
       skills[editingSkillIndex] = data;
     } else {
       skills.push(data);
     }
-    updateValtherion({ bondSkills: skills });
+    updateCompanion({ bondSkills: skills });
     setSkillDialogOpen(false);
   };
 
   const handleDeleteBondSkill = (index) => {
-    const skills = (valtherion.bondSkills || []).filter((_, i) => i !== index);
-    updateValtherion({ bondSkills: skills });
+    const skills = (companion.bondSkills || []).filter((_, i) => i !== index);
+    updateCompanion({ bondSkills: skills });
   };
 
   // Stat boost handlers (body tempering, fruits, etc.)
@@ -657,50 +681,52 @@ function Valtherion() {
   };
 
   const handleSaveBoost = (data) => {
-    const boosts = [...(valtherion.statBoosts || [])];
+    const boosts = [...(companion.statBoosts || [])];
     if (editingBoostIndex >= 0) {
       boosts[editingBoostIndex] = data;
     } else {
       boosts.push(data);
     }
-    updateValtherion({ statBoosts: boosts });
+    updateCompanion({ statBoosts: boosts });
     setBoostDialogOpen(false);
   };
 
   const handleDeleteBoost = (index) => {
-    const boosts = (valtherion.statBoosts || []).filter((_, i) => i !== index);
-    updateValtherion({ statBoosts: boosts });
+    const boosts = (companion.statBoosts || []).filter((_, i) => i !== index);
+    updateCompanion({ statBoosts: boosts });
   };
 
   const handleToggleBoost = (index) => {
-    const boosts = [...(valtherion.statBoosts || [])];
+    const boosts = [...(companion.statBoosts || [])];
     const currentEnabled = boosts[index].enabled !== false;
     boosts[index] = { ...boosts[index], enabled: !currentEnabled };
-    updateValtherion({ statBoosts: boosts });
+    updateCompanion({ statBoosts: boosts });
   };
 
   const handleLevelChange = (newLevel) => {
-    updateValtherion({ level: Number(newLevel) || 1 });
+    updateCompanion({ level: Number(newLevel) || 1 });
   };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Bond Sync Info */}
-      <Alert
-        severity="info"
-        icon={<SyncIcon />}
-        sx={{
-          bgcolor: 'rgba(107, 91, 149, 0.1)',
-          border: '1px solid',
-          borderColor: 'secondary.main',
-        }}
-      >
-        <Typography variant="body2">
-          <strong>Bond Sync Active:</strong><br />
-          Alex receives +{syncedManaForAlex} Mana (half of Val's {valFinalStats.mana || 0}).<br />
-          Valtherion receives +{syncedWillpowerForVal} Willpower (half of Alex's {alexFinalStats.willpower || 0}).
-        </Typography>
-      </Alert>
+      {/* Bond Sync Info - Only show if bond is enabled */}
+      {hasBond && (
+        <Alert
+          severity="info"
+          icon={<SyncIcon />}
+          sx={{
+            bgcolor: 'rgba(107, 91, 149, 0.1)',
+            border: '1px solid',
+            borderColor: 'secondary.main',
+          }}
+        >
+          <Typography variant="body2">
+            <strong>Bond Sync Active:</strong><br />
+            {mainName} receives +{syncedManaForMain} Mana (half of {companionDisplayName}'s {companionFinalStats.mana || 0}).<br />
+            {companionDisplayName} receives +{syncedWillpowerForCompanion} Willpower (half of {mainName}'s {mainFinalStats.willpower || 0}).
+          </Typography>
+        </Alert>
+      )}
 
       {/* Basic Info */}
       <Paper sx={{ p: 3 }}>
@@ -712,8 +738,8 @@ function Valtherion() {
             <TextField
               fullWidth
               label="Name"
-              value={valtherion.name || ''}
-              onChange={(e) => updateValtherion({ name: e.target.value })}
+              value={companion.name || ''}
+              onChange={(e) => updateCompanion({ name: e.target.value })}
             />
           </Grid>
           <Grid item xs={12} sm={6} md={2}>
@@ -721,7 +747,7 @@ function Valtherion() {
               fullWidth
               label="Level"
               type="number"
-              value={valtherion.level || 1}
+              value={companion.level || 1}
               onChange={(e) => handleLevelChange(e.target.value)}
               inputProps={{ min: 1 }}
               helperText="Change to recalculate"
@@ -762,7 +788,7 @@ function Valtherion() {
                   color: 'error.main',
                 }}
               >
-                {valDerivedStats.hp?.max || 0}
+                {companionDerivedStats.hp?.max || 0}
               </Typography>
             </Box>
           </Grid>
@@ -778,7 +804,7 @@ function Valtherion() {
                   color: 'info.main',
                 }}
               >
-                {valDerivedStats.mp?.max || 0}
+                {companionDerivedStats.mp?.max || 0}
               </Typography>
             </Box>
           </Grid>
@@ -797,8 +823,8 @@ function Valtherion() {
           <StatDisplay
             key={stat}
             statName={stat}
-            finalValue={valFinalStats[stat] || 0}
-            breakdown={valStatBreakdowns[stat]}
+            finalValue={companionFinalStats[stat] || 0}
+            breakdown={companionStatBreakdowns[stat]}
           />
         ))}
       </Paper>
@@ -812,10 +838,10 @@ function Valtherion() {
           <StatDisplay
             key={stat}
             statName={stat}
-            finalValue={valFinalStats[stat] || 0}
-            breakdown={valStatBreakdowns[stat]}
-            syncedValue={stat === 'willpower' ? syncedWillpowerForVal : undefined}
-            syncedFrom={stat === 'willpower' ? 'Alex' : undefined}
+            finalValue={companionFinalStats[stat] || 0}
+            breakdown={companionStatBreakdowns[stat]}
+            syncedValue={stat === 'willpower' && hasBond ? syncedWillpowerForCompanion : undefined}
+            syncedFrom={stat === 'willpower' && hasBond ? mainName : undefined}
           />
         ))}
       </Paper>
@@ -842,7 +868,7 @@ function Valtherion() {
           >
             Add Evolution
           </Button>
-          {valtherion.classHistory?.length > 0 ? (
+          {companion.classHistory?.length > 0 ? (
             <TableContainer>
               <Table size="small">
                 <TableHead>
@@ -854,7 +880,7 @@ function Valtherion() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {valtherion.classHistory.map((evo, index) => (
+                  {companion.classHistory.map((evo, index) => (
                     <TableRow 
                       key={index}
                       sx={{
@@ -906,7 +932,7 @@ function Valtherion() {
         </AccordionSummary>
         <AccordionDetails>
           <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
-            Snapshots record Valtherion's base stat values at specific levels (e.g., when evolving).
+            Snapshots record base stat values at specific levels (e.g., when evolving).
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
             <Button
@@ -916,7 +942,7 @@ function Valtherion() {
               size="small"
               color="secondary"
             >
-              Take Snapshot (Level {valtherion.level})
+              Take Snapshot (Level {companion.level})
             </Button>
             <Button
               variant="outlined"
@@ -931,7 +957,7 @@ function Valtherion() {
           <Typography variant="caption" sx={{ display: 'block', mb: 2, color: 'info.main' }}>
             ℹ️ "Take Snapshot" captures the current total stats including all bonuses at this level.
           </Typography>
-          {valtherion.levelSnapshots && Object.keys(valtherion.levelSnapshots).length > 0 ? (
+          {companion.levelSnapshots && Object.keys(companion.levelSnapshots).length > 0 ? (
             <TableContainer>
               <Table size="small">
                 <TableHead>
@@ -942,7 +968,7 @@ function Valtherion() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {Object.entries(valtherion.levelSnapshots)
+                  {Object.entries(companion.levelSnapshots)
                     .sort((a, b) => Number(a[0]) - Number(b[0]))
                     .map(([level, snapshot]) => (
                       <TableRow key={level}>
@@ -985,7 +1011,7 @@ function Valtherion() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <BondIcon sx={{ color: 'secondary.main' }} />
             <Typography variant="h6">
-              Valtherion's Bond Skills ({valtherion.bondSkills?.length || 0})
+              {companionDisplayName}'s Bond Skills ({companion.bondSkills?.length || 0})
             </Typography>
           </Box>
         </AccordionSummary>
@@ -1000,7 +1026,7 @@ function Valtherion() {
           >
             Add Bond Skill
           </Button>
-          {valtherion.bondSkills?.length > 0 ? (
+          {companion.bondSkills?.length > 0 ? (
             <TableContainer>
               <Table size="small">
                 <TableHead>
@@ -1013,7 +1039,7 @@ function Valtherion() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {valtherion.bondSkills.map((skill, index) => (
+                  {companion.bondSkills.map((skill, index) => (
                     <TableRow key={index}>
                       <TableCell>[{skill.name}]</TableCell>
                       <TableCell>{skill.rank}</TableCell>
@@ -1044,7 +1070,7 @@ function Valtherion() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <BoostIcon sx={{ color: 'secondary.main' }} />
             <Typography variant="h6">
-              Stat Boosts ({valtherion.statBoosts?.filter(b => b.enabled !== false).length || 0} active)
+              Stat Boosts ({companion.statBoosts?.filter(b => b.enabled !== false).length || 0} active)
             </Typography>
           </Box>
         </AccordionSummary>
@@ -1063,7 +1089,7 @@ function Valtherion() {
           >
             Add Stat Boost
           </Button>
-          {valtherion.statBoosts?.length > 0 ? (
+          {companion.statBoosts?.length > 0 ? (
             <TableContainer>
               <Table size="small">
                 <TableHead>
@@ -1076,7 +1102,7 @@ function Valtherion() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {valtherion.statBoosts.map((boost, index) => (
+                  {companion.statBoosts.map((boost, index) => (
                     <TableRow 
                       key={index}
                       sx={{ opacity: boost.enabled === false ? 0.5 : 1 }}
@@ -1147,7 +1173,7 @@ function Valtherion() {
         open={snapshotDialogOpen}
         onClose={() => setSnapshotDialogOpen(false)}
         level={editingSnapshotLevel}
-        currentSnapshot={editingSnapshotLevel ? valtherion.levelSnapshots?.[editingSnapshotLevel] : null}
+        currentSnapshot={editingSnapshotLevel ? companion.levelSnapshots?.[editingSnapshotLevel] : null}
         onSave={handleSaveSnapshot}
       />
       <SkillDialog
@@ -1166,4 +1192,5 @@ function Valtherion() {
   );
 }
 
-export default Valtherion;
+export default Companion;
+
