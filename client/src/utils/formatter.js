@@ -141,11 +141,12 @@ export function formatStatusScreen(character, options = {}) {
   lines.push(`Wisdom: ${finalStats.wisdom || 0}`);
   lines.push('');
 
-  // Bond Skills
-  if (character.bondSkills && character.bondSkills.length > 0) {
+  // Bond Skills (filter out old skills)
+  const currentBondSkills = character.bondSkills?.filter(s => !s.isOld) || [];
+  if (currentBondSkills.length > 0) {
     lines.push('**Bond Skills:**');
     lines.push('');
-    character.bondSkills.forEach((skill) => {
+    currentBondSkills.forEach((skill) => {
       lines.push(formatSkill(skill));
       lines.push('');
       if (skill.primaryStatShared) {
@@ -155,21 +156,23 @@ export function formatStatusScreen(character, options = {}) {
     });
   }
 
-  // Active Skills
-  if (character.activeSkills && character.activeSkills.length > 0) {
+  // Active Skills (filter out old skills)
+  const currentActiveSkills = character.activeSkills?.filter(s => !s.isOld) || [];
+  if (currentActiveSkills.length > 0) {
     lines.push('**Active Skills:** ');
     lines.push('');
-    character.activeSkills.forEach((skill) => {
+    currentActiveSkills.forEach((skill) => {
       lines.push(formatSkill(skill));
       lines.push('');
     });
   }
 
-  // Passive Skills
-  if (character.passiveSkills && character.passiveSkills.length > 0) {
+  // Passive Skills (filter out old skills)
+  const currentPassiveSkills = character.passiveSkills?.filter(s => !s.isOld) || [];
+  if (currentPassiveSkills.length > 0) {
     lines.push('**Passive Skills:** ');
     lines.push('');
-    character.passiveSkills.forEach((skill) => {
+    currentPassiveSkills.forEach((skill) => {
       lines.push(formatPassiveSkill(skill));
       lines.push('');
     });

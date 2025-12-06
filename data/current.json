@@ -476,7 +476,6 @@
         "rank": "Journeyman",
         "level": 16,
         "advancement": false,
-        "description": "",
         "primaryStatShared": "Mana"
       }
     ],
@@ -485,7 +484,9 @@
         "name": "Mana Infusion",
         "rank": "Journeyman",
         "level": 6,
-        "advancement": false
+        "advancement": false,
+        "description": "Infuse mana.",
+        "isOld": false
       },
       {
         "name": "Feather Step",
@@ -568,7 +569,8 @@
       {
         "name": "Spectral Eye of the Celestial Sage",
         "rank": "D",
-        "type": "Growth Item (Unique)"
+        "type": "Growth Item (Unique)",
+        "description": ""
       },
       {
         "name": "The Magician's Cap",

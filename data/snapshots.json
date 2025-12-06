@@ -1,13 +1,13 @@
 {
   "snapshots": [
     {
-      "id": "5dc8d885-2668-4427-bf08-703efcb8c609",
+      "id": "c4c14f77-e87e-4e5c-8eac-3a8a223aee18",
       "name": "V3 Chapter 26 - Alex Full Status",
-      "createdAt": "2025-12-05T19:06:48.540Z",
+      "createdAt": "2025-12-06T02:56:03.591Z",
       "data": {
-        "alex": {
+        "main": {
           "name": "Alex Moore",
-          "level": 49,
+          "level": 60,
           "hp": {
             "current": 1000,
             "max": 1000
@@ -32,13 +32,27 @@
             {
               "name": "Spell Weaver (Novice)",
               "startLevel": 30,
-              "endLevel": null,
+              "endLevel": 60,
               "statsPerLevel": {
                 "willpower": 4,
                 "intellect": 3,
                 "mana": 2,
                 "wisdom": 2,
                 "constitution": 1
+              }
+            },
+            {
+              "name": "Spell Weaver (Journeyman)",
+              "startLevel": 60,
+              "endLevel": null,
+              "statsPerLevel": {
+                "constitution": 1,
+                "vitality": 0,
+                "intellect": 4,
+                "willpower": 6,
+                "mana": 3,
+                "wisdom": 3,
+                "agility": 1
               }
             }
           ],
@@ -84,6 +98,68 @@
                 "mana": 0,
                 "wisdom": 0
               }
+            },
+            "60": {
+              "stats": {
+                "strength": 29,
+                "agility": 50,
+                "constitution": 100,
+                "vitality": 31,
+                "intellect": 479,
+                "willpower": 1281,
+                "mana": 106,
+                "wisdom": 169
+              },
+              "rawTitleBonuses": {
+                "strength": 25,
+                "agility": 25,
+                "constitution": 25,
+                "vitality": 25,
+                "intellect": 35,
+                "willpower": 35,
+                "mana": 35,
+                "wisdom": 35
+              },
+              "includedTraitMultipliers": {
+                "strength": 1,
+                "agility": 1,
+                "constitution": 1,
+                "vitality": 1,
+                "intellect": 1,
+                "willpower": 3,
+                "mana": 1,
+                "wisdom": 1
+              },
+              "includedTitleBonuses": {
+                "strength": 25,
+                "agility": 25,
+                "constitution": 25,
+                "vitality": 25,
+                "intellect": 35,
+                "willpower": 105,
+                "mana": 35,
+                "wisdom": 35
+              },
+              "includedTitleMultipliers": {
+                "strength": 0,
+                "agility": 0,
+                "constitution": 0,
+                "vitality": 0,
+                "intellect": 0.05,
+                "willpower": 0.07,
+                "mana": 0.05,
+                "wisdom": 0.05
+              },
+              "includedDerivationBonuses": {
+                "strength": 0,
+                "agility": 0,
+                "constitution": 0,
+                "vitality": 0,
+                "intellect": 320,
+                "willpower": 0,
+                "mana": 0,
+                "wisdom": 0
+              }
             }
           },
           "freePoints": {
@@ -98,22 +174,35 @@
           },
           "statDerivations": [],
           "traits": {
-            "current": 1,
+            "current": 2,
             "max": 3,
             "items": [
+              {
+                "name": "The Tempered Mind",
+                "effects": [
+                  {
+                    "type": "stat_derivation",
+                    "stat": "willpower",
+                    "multiplier": 1,
+                    "sourceStat": "willpower",
+                    "percent": 25,
+                    "targetStat": "intellect"
+                  }
+                ]
+              },
               {
                 "name": "Primordial Will",
                 "effects": [
                   {
                     "type": "stat_multiplier",
                     "stat": "willpower",
-                    "multiplier": 3,
-                    "description": "All Willpower gains are tripled"
+                    "multiplier": 3
                   },
                   {
                     "type": "redirect_free_points",
-                    "toStat": "willpower",
-                    "description": "Free points automatically go to Willpower"
+                    "stat": "willpower",
+                    "multiplier": 1,
+                    "toStat": "willpower"
                   }
                 ]
               }
@@ -378,13 +467,13 @@
               "name": "Integration Champion",
               "isPrimary": false,
               "bonuses": [],
-              "enabled": false
+              "enabled": true
             },
             {
               "name": "Iron Will",
               "isPrimary": false,
               "bonuses": [],
-              "enabled": false
+              "enabled": true
             }
           ],
           "bondSkills": [
@@ -398,16 +487,12 @@
           ],
           "activeSkills": [
             {
-              "name": "Mana Thread",
-              "rank": "Journeyman",
-              "level": 18,
-              "advancement": false
-            },
-            {
               "name": "Mana Infusion",
               "rank": "Journeyman",
               "level": 6,
-              "advancement": false
+              "advancement": false,
+              "description": "Infuse mana.",
+              "isOld": false
             },
             {
               "name": "Feather Step",
@@ -504,9 +589,9 @@
             }
           ]
         },
-        "valtherion": {
+        "companion": {
           "name": "Valtherion",
-          "level": 49,
+          "level": 60,
           "hp": {
             "current": 100,
             "max": 100
@@ -541,6 +626,21 @@
                 "mana": 4,
                 "wisdom": 2
               }
+            },
+            {
+              "name": "Wyvern",
+              "startLevel": 60,
+              "endLevel": null,
+              "statsPerLevel": {
+                "mana": 8,
+                "willpower": 2,
+                "intellect": 6,
+                "constitution": 4,
+                "vitality": 4,
+                "strength": 3,
+                "wisdom": 2,
+                "agility": 1
+              }
             }
           ],
           "levelSnapshots": {
@@ -563,6 +663,16 @@
               "willpower": 45,
               "mana": 63,
               "wisdom": 52
+            },
+            "60": {
+              "strength": 55,
+              "agility": 32,
+              "constitution": 99,
+              "vitality": 101,
+              "intellect": 107,
+              "willpower": 74,
+              "mana": 179,
+              "wisdom": 110
             }
           },
           "freePoints": {

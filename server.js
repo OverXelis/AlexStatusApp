@@ -221,17 +221,23 @@ app.get('/api/snapshots', async (req, res) => {
     const config = loadConfig();
     
     // Return metadata with preview info
-    // TEMPLATE NOTE: Preview uses generic "main" key
-    const snapshotsList = snapshotsData.snapshots.map(snapshot => ({
-      id: snapshot.id,
-      name: snapshot.name,
-      createdAt: snapshot.createdAt,
-      preview: {
-        mainLevel: snapshot.data?.main?.level || 0,
-        mainClass: snapshot.data?.main?.class || '',
-        companionLevel: snapshot.data?.companion?.level || 0
-      }
-    }));
+    // TEMPLATE NOTE: Check both new (main/companion) and legacy (alex/valtherion) keys
+    const snapshotsList = snapshotsData.snapshots.map(snapshot => {
+      // Support both new generic keys and legacy character-specific keys
+      const mainData = snapshot.data?.main || snapshot.data?.alex;
+      const companionData = snapshot.data?.companion || snapshot.data?.valtherion;
+      
+      return {
+        id: snapshot.id,
+        name: snapshot.name,
+        createdAt: snapshot.createdAt,
+        preview: {
+          mainLevel: mainData?.level || 0,
+          mainClass: mainData?.class || '',
+          companionLevel: companionData?.level || 0
+        }
+      };
+    });
     
     res.json(snapshotsList);
   } catch (error) {

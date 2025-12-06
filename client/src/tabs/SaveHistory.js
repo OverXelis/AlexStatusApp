@@ -301,13 +301,13 @@ function SaveHistory() {
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
                         <Chip
-                          label={`Lvl ${snapshot.preview?.alexLevel || '?'}`}
+                          label={`Lvl ${snapshot.preview?.mainLevel || '?'}`}
                           size="small"
                           sx={{ bgcolor: 'primary.dark' }}
                         />
-                        {snapshot.preview?.alexClass && (
+                        {snapshot.preview?.mainClass && (
                           <Chip
-                            label={snapshot.preview.alexClass.split(' ')[0]}
+                            label={snapshot.preview.mainClass.split(' ')[0]}
                             size="small"
                             variant="outlined"
                           />

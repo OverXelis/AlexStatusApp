@@ -46,6 +46,12 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Popper,
+  Fade,
+  Divider,
+  Snackbar,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
 import {
   ExpandMore as ExpandIcon,
@@ -60,6 +66,12 @@ import {
   Science as MpIcon,
   CameraAlt as SnapshotIcon,
   FitnessCenter as BoostIcon,
+  FlashOn as ActiveIcon,
+  Shield as PassiveIcon,
+  ContentCopy as CopyIcon,
+  CardGiftcard as SkillOfferedIcon,
+  TrendingUp as LevelUpIcon,
+  Upgrade as AdvanceIcon,
 } from '@mui/icons-material';
 import { useCharacter } from '../context/CharacterContext';
 import {
@@ -68,6 +80,7 @@ import {
   STAT_DISPLAY_NAMES,
   ALL_STATS,
   SKILL_RANKS,
+  PASSIVE_TIERS,
   getTitleAdditiveBonuses,
   getTitleMultiplierBonuses,
   getStatBoostAdditiveBonuses,
@@ -312,13 +325,191 @@ function SnapshotDialog({ open, onClose, level, currentSnapshot, onSave }) {
   );
 }
 
-// Skill Dialog for Companion
-function SkillDialog({ open, onClose, skill, onSave }) {
+// Skill Hover Panel Component for Companion
+function CompanionSkillHoverPanel({ anchorEl, skill, isPassive = false }) {
+  const open = Boolean(anchorEl) && Boolean(skill);
+  
+  return (
+    <Popper
+      open={open}
+      anchorEl={anchorEl}
+      placement="right-start"
+      transition
+      sx={{ zIndex: 1300 }}
+    >
+      {({ TransitionProps }) => (
+        <Fade {...TransitionProps} timeout={200}>
+          <Paper
+            elevation={8}
+            sx={{
+              ml: 2,
+              minWidth: 280,
+              maxWidth: 400,
+              bgcolor: 'background.paper',
+              border: '1px solid',
+              borderColor: isPassive ? 'info.dark' : 'warning.dark',
+              borderRadius: 2,
+              overflow: 'hidden',
+              animation: 'slideIn 0.2s ease-out',
+              '@keyframes slideIn': {
+                '0%': { opacity: 0, transform: 'translateX(-10px)' },
+                '100%': { opacity: 1, transform: 'translateX(0)' },
+              },
+            }}
+          >
+            <Box
+              sx={{
+                px: 2,
+                py: 1.5,
+                bgcolor: isPassive ? 'rgba(41, 121, 255, 0.15)' : 'rgba(255, 152, 0, 0.15)',
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+              }}
+            >
+              <Typography
+                variant="h6"
+                sx={{
+                  color: isPassive ? 'info.light' : 'warning.light',
+                  fontWeight: 600,
+                  fontSize: '1.1rem',
+                }}
+              >
+                [{skill?.name}]
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}
+              >
+                {isPassive ? `Passive Skill • Tier ${skill?.tier}` : `${skill?.rank} • Level ${skill?.level}`}
+              </Typography>
+            </Box>
+            <Box sx={{ px: 2, py: 1.5 }}>
+              {skill?.description ? (
+                <Typography variant="body2" sx={{ color: 'text.primary', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                  {skill.description}
+                </Typography>
+              ) : (
+                <Typography variant="body2" sx={{ color: 'text.disabled', fontStyle: 'italic' }}>
+                  No description available.
+                </Typography>
+              )}
+            </Box>
+          </Paper>
+        </Fade>
+      )}
+    </Popper>
+  );
+}
+
+// Skill Name Cell with Hover for Companion
+function CompanionSkillNameCell({ skill, isPassive = false }) {
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  return (
+    <Box
+      component="span"
+      onMouseEnter={(e) => setAnchorEl(e.currentTarget)}
+      onMouseLeave={() => setAnchorEl(null)}
+      sx={{
+        display: 'inline-block',
+        cursor: 'default',
+        py: 0.5,
+        px: 0.5,
+        mx: -0.5,
+        borderRadius: 0.5,
+        transition: 'background-color 0.15s',
+        '&:hover': { bgcolor: 'rgba(255, 152, 0, 0.1)' },
+        borderBottom: skill.description ? '1px dotted rgba(255, 152, 0, 0.5)' : 'none',
+      }}
+    >
+      [{skill.name}]
+      <CompanionSkillHoverPanel anchorEl={anchorEl} skill={skill} isPassive={isPassive} />
+    </Box>
+  );
+}
+
+// Helper to get next tier
+const getNextTier = (currentTier) => {
+  const tiers = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+  const currentIndex = tiers.indexOf(currentTier);
+  if (currentIndex === -1 || currentIndex >= tiers.length - 1) return currentTier;
+  return tiers[currentIndex + 1];
+};
+
+// System Prompt Dialog for Companion Skills
+function CompanionSystemPromptDialog({ open, onClose, type, skill, onCopySuccess }) {
+  const getPromptContent = () => {
+    if (!skill) return '';
+    const skillName = skill.name;
+    const skillTier = skill.tier || 'I';
+    const nextTier = getNextTier(skillTier);
+    
+    switch (type) {
+      case 'offered':
+        return `***\n\n**New Skill Learned:** ${skillName} (Novice - Level 1)\n\n**Do you accept? Yes/ No?**\n\n***`;
+      case 'levelup':
+        return `***\n\n**Congratulations, ${skillName} has leveled up!**\n\n***`;
+      case 'advancement':
+        return `***\n\n**Congratulations, ${skillName} has leveled up!**\n\nYou have reached the Tier threshold of an active skill. Would you like to advance or evolve this skill?\n\nAdvance: This skill stays the same and advances to an improved version in the same tree.\n\nEvolve: This skill changes based on the different ways you may have used it or pushed the bounds of its purpose. You will lose levels in this skill if you choose this option.\n\nAdvance / Evolve?\n\n***\n\n---\n\n***\n\nAnalyzing skill usage…\n\n**New Skill Learned:** [insert skill name] ([insert rank])\n\n**[insert skill name] -** [skill description]\n\n***`;
+      case 'passive_offered':
+        return `***\n\n**New Skill Learned:** ${skillName} (Tier I)\n\n**Do you accept? Yes/ No?**\n\n***`;
+      case 'passive_levelup':
+        return `***\n\n**Congratulations, ${skillName} (Tier ${skillTier}) has advanced to (Tier ${nextTier})!**\n\n***`;
+      default:
+        return '';
+    }
+  };
+
+  const getTitle = () => {
+    switch (type) {
+      case 'offered': return 'Skill Offered Prompt';
+      case 'levelup': return 'Skill Level Up Prompt';
+      case 'advancement': return 'Skill Advancement Prompt';
+      case 'passive_offered': return 'Passive Skill Offered Prompt';
+      case 'passive_levelup': return 'Passive Tier Advance Prompt';
+      default: return 'System Prompt';
+    }
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(getPromptContent());
+      onCopySuccess?.('Prompt copied to clipboard!');
+      onClose();
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle sx={{ color: 'primary.main' }}>{getTitle()}</DialogTitle>
+      <DialogContent>
+        <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+          Copy this prompt for <strong>{skill?.name}</strong> and paste into Notion.
+        </Typography>
+        <Box sx={{ bgcolor: 'rgba(0,0,0,0.3)', p: 2, borderRadius: 1, fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+          {getPromptContent()}
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Close</Button>
+        <Button onClick={handleCopy} variant="contained" color="success" startIcon={<CopyIcon />}>
+          Copy to Clipboard
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+// Active Skill Dialog for Companion
+function CompanionActiveSkillDialog({ open, onClose, skill, onSave }) {
   const [name, setName] = useState(skill?.name || '');
   const [rank, setRank] = useState(skill?.rank || 'Novice');
   const [level, setLevel] = useState(skill?.level || 1);
   const [advancement, setAdvancement] = useState(skill?.advancement || false);
-  const [primaryStatShared, setPrimaryStatShared] = useState(skill?.primaryStatShared || '');
+  const [description, setDescription] = useState(skill?.description || '');
+  const [isOld, setIsOld] = useState(skill?.isOld || false);
 
   React.useEffect(() => {
     if (open) {
@@ -326,69 +517,102 @@ function SkillDialog({ open, onClose, skill, onSave }) {
       setRank(skill?.rank || 'Novice');
       setLevel(skill?.level || 1);
       setAdvancement(skill?.advancement || false);
-      setPrimaryStatShared(skill?.primaryStatShared || '');
+      setDescription(skill?.description || '');
+      setIsOld(skill?.isOld || false);
     }
   }, [open, skill]);
 
   const handleSave = () => {
-    onSave({ name, rank, level, advancement, primaryStatShared });
+    onSave({ name, rank, level, advancement, description, isOld });
     onClose();
   };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{skill ? 'Edit Bond Skill' : 'Add Bond Skill'}</DialogTitle>
+      <DialogTitle>{skill ? 'Edit Active Skill' : 'Add Active Skill'}</DialogTitle>
       <DialogContent>
         <Grid container spacing={2} sx={{ mt: 1 }}>
           <Grid item xs={12}>
-            <TextField
-              autoFocus
-              label="Skill Name"
-              fullWidth
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+            <TextField autoFocus label="Skill Name" fullWidth value={name} onChange={(e) => setName(e.target.value)} />
           </Grid>
           <Grid item xs={6}>
-            <TextField
-              select
-              fullWidth
-              label="Rank"
-              value={rank}
-              onChange={(e) => setRank(e.target.value)}
-              SelectProps={{ native: true }}
-            >
-              {SKILL_RANKS.map((r) => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </TextField>
+            <FormControl fullWidth>
+              <InputLabel>Proficiency</InputLabel>
+              <Select value={rank} onChange={(e) => setRank(e.target.value)} label="Proficiency">
+                {SKILL_RANKS.map((r) => (<MenuItem key={r} value={r}>{r}</MenuItem>))}
+              </Select>
+            </FormControl>
           </Grid>
           <Grid item xs={6}>
-            <TextField
-              type="number"
-              label="Level"
-              fullWidth
-              value={level}
-              onChange={(e) => setLevel(Number(e.target.value) || 1)}
-              inputProps={{ min: 1 }}
-            />
+            <TextField type="number" label="Level" fullWidth value={level} onChange={(e) => setLevel(Number(e.target.value) || 1)} inputProps={{ min: 1 }} />
           </Grid>
           <Grid item xs={12}>
-            <TextField
-              label="Primary Stat Shared"
-              fullWidth
-              value={primaryStatShared}
-              onChange={(e) => setPrimaryStatShared(e.target.value)}
-              placeholder="e.g., Mana"
-            />
+            <TextField label="Description" fullWidth multiline rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Enter a description (shown on hover)" helperText="This description will appear when hovering over the skill" />
+          </Grid>
+          <Grid item xs={6}>
+            <FormControlLabel control={<Checkbox checked={advancement} onChange={(e) => setAdvancement(e.target.checked)} sx={{ color: 'warning.main', '&.Mui-checked': { color: 'warning.main' } }} />} label="Advancement Offered" />
+          </Grid>
+          <Grid item xs={6}>
+            <FormControlLabel control={<Checkbox checked={isOld} onChange={(e) => setIsOld(e.target.checked)} sx={{ color: 'text.secondary', '&.Mui-checked': { color: 'text.secondary' } }} />} label="Old Skill (Archive)" />
           </Grid>
         </Grid>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button onClick={handleSave} variant="contained" disabled={!name.trim()}>
-          Save
-        </Button>
+        <Button onClick={handleSave} variant="contained" disabled={!name.trim()}>Save</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+// Passive Skill Dialog for Companion
+function CompanionPassiveSkillDialog({ open, onClose, skill, onSave }) {
+  const [name, setName] = useState(skill?.name || '');
+  const [tier, setTier] = useState(skill?.tier || 'I');
+  const [description, setDescription] = useState(skill?.description || '');
+  const [isOld, setIsOld] = useState(skill?.isOld || false);
+
+  React.useEffect(() => {
+    if (open) {
+      setName(skill?.name || '');
+      setTier(skill?.tier || 'I');
+      setDescription(skill?.description || '');
+      setIsOld(skill?.isOld || false);
+    }
+  }, [open, skill]);
+
+  const handleSave = () => {
+    onSave({ name, tier, description, isOld });
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>{skill ? 'Edit Passive Skill' : 'Add Passive Skill'}</DialogTitle>
+      <DialogContent>
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid item xs={8}>
+            <TextField autoFocus label="Skill Name" fullWidth value={name} onChange={(e) => setName(e.target.value)} />
+          </Grid>
+          <Grid item xs={4}>
+            <FormControl fullWidth>
+              <InputLabel>Tier</InputLabel>
+              <Select value={tier} onChange={(e) => setTier(e.target.value)} label="Tier">
+                {PASSIVE_TIERS.map((t) => (<MenuItem key={t} value={t}>{t}</MenuItem>))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12}>
+            <TextField label="Description" fullWidth multiline rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Enter a description (shown on hover)" helperText="This description will appear when hovering over the skill" />
+          </Grid>
+          <Grid item xs={12}>
+            <FormControlLabel control={<Checkbox checked={isOld} onChange={(e) => setIsOld(e.target.checked)} sx={{ color: 'text.secondary', '&.Mui-checked': { color: 'text.secondary' } }} />} label="Old Skill (Archive)" />
+          </Grid>
+        </Grid>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={handleSave} variant="contained" disabled={!name.trim()}>Save</Button>
       </DialogActions>
     </Dialog>
   );
@@ -525,7 +749,8 @@ function Companion() {
 
   const [evolutionDialogOpen, setEvolutionDialogOpen] = useState(false);
   const [snapshotDialogOpen, setSnapshotDialogOpen] = useState(false);
-  const [skillDialogOpen, setSkillDialogOpen] = useState(false);
+  const [activeSkillDialogOpen, setActiveSkillDialogOpen] = useState(false);
+  const [passiveSkillDialogOpen, setPassiveSkillDialogOpen] = useState(false);
   const [boostDialogOpen, setBoostDialogOpen] = useState(false);
   const [editingEvolution, setEditingEvolution] = useState(null);
   const [editingEvolutionIndex, setEditingEvolutionIndex] = useState(-1);
@@ -534,6 +759,10 @@ function Companion() {
   const [editingSkillIndex, setEditingSkillIndex] = useState(-1);
   const [editingBoost, setEditingBoost] = useState(null);
   const [editingBoostIndex, setEditingBoostIndex] = useState(-1);
+  const [promptDialogOpen, setPromptDialogOpen] = useState(false);
+  const [promptType, setPromptType] = useState('');
+  const [promptSkill, setPromptSkill] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '' });
 
   // Get display names from config
   const mainName = main?.name || getMainName();
@@ -638,33 +867,90 @@ function Companion() {
     updateCompanion({ levelSnapshots: snapshots });
   };
 
-  // Bond skill handlers
-  const handleAddBondSkill = () => {
+  // Active skill handlers
+  const handleAddActiveSkill = () => {
     setEditingSkill(null);
     setEditingSkillIndex(-1);
-    setSkillDialogOpen(true);
+    setActiveSkillDialogOpen(true);
   };
 
-  const handleEditBondSkill = (skill, index) => {
+  const handleEditActiveSkill = (skill, index) => {
     setEditingSkill(skill);
     setEditingSkillIndex(index);
-    setSkillDialogOpen(true);
+    setActiveSkillDialogOpen(true);
   };
 
-  const handleSaveBondSkill = (data) => {
-    const skills = [...(companion.bondSkills || [])];
+  const handleSaveActiveSkill = (data) => {
+    const skills = [...(companion.activeSkills || [])];
     if (editingSkillIndex >= 0) {
       skills[editingSkillIndex] = data;
     } else {
       skills.push(data);
     }
-    updateCompanion({ bondSkills: skills });
-    setSkillDialogOpen(false);
+    updateCompanion({ activeSkills: skills });
+    setActiveSkillDialogOpen(false);
   };
 
-  const handleDeleteBondSkill = (index) => {
-    const skills = (companion.bondSkills || []).filter((_, i) => i !== index);
-    updateCompanion({ bondSkills: skills });
+  const handleDeleteActiveSkill = (index) => {
+    const skills = (companion.activeSkills || []).filter((_, i) => i !== index);
+    updateCompanion({ activeSkills: skills });
+  };
+
+  // Passive skill handlers
+  const handleAddPassiveSkill = () => {
+    setEditingSkill(null);
+    setEditingSkillIndex(-1);
+    setPassiveSkillDialogOpen(true);
+  };
+
+  const handleEditPassiveSkill = (skill, index) => {
+    setEditingSkill(skill);
+    setEditingSkillIndex(index);
+    setPassiveSkillDialogOpen(true);
+  };
+
+  const handleSavePassiveSkill = (data) => {
+    const skills = [...(companion.passiveSkills || [])];
+    if (editingSkillIndex >= 0) {
+      skills[editingSkillIndex] = data;
+    } else {
+      skills.push(data);
+    }
+    updateCompanion({ passiveSkills: skills });
+    setPassiveSkillDialogOpen(false);
+  };
+
+  const handleDeletePassiveSkill = (index) => {
+    const skills = (companion.passiveSkills || []).filter((_, i) => i !== index);
+    updateCompanion({ passiveSkills: skills });
+  };
+
+  // System prompt handler
+  const openPromptDialog = (type, skill) => {
+    setPromptType(type);
+    setPromptSkill(skill);
+    setPromptDialogOpen(true);
+  };
+
+  // Copy description handler
+  const copyDescription = async (type, item) => {
+    let text = '';
+    switch (type) {
+      case 'active':
+        text = `***\n\n**[${item.name}]** - ${item.description || '[No description]'}\n\n***`;
+        break;
+      case 'passive':
+        text = `***\n\n**[${item.name}](Tier ${item.tier})** - ${item.description || '[No description]'}\n\n***`;
+        break;
+      default:
+        text = item.description || '[No description]';
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setSnackbar({ open: true, message: `${item.name} description copied!` });
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
   };
 
   // Stat boost handlers (body tempering, fruits, etc.)
@@ -1005,13 +1291,13 @@ function Companion() {
         </AccordionDetails>
       </Accordion>
 
-      {/* Bond Skills */}
+      {/* Active Skills */}
       <Accordion defaultExpanded>
         <AccordionSummary expandIcon={<ExpandIcon />}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <BondIcon sx={{ color: 'secondary.main' }} />
+            <ActiveIcon sx={{ color: 'warning.main' }} />
             <Typography variant="h6">
-              {companionDisplayName}'s Bond Skills ({companion.bondSkills?.length || 0})
+              {companionDisplayName}'s Active Skills ({(companion.activeSkills || []).filter(s => !s.isOld).length})
             </Typography>
           </Box>
         </AccordionSummary>
@@ -1019,39 +1305,71 @@ function Companion() {
           <Button
             variant="outlined"
             startIcon={<AddIcon />}
-            onClick={handleAddBondSkill}
+            onClick={handleAddActiveSkill}
             size="small"
             sx={{ mb: 2 }}
-            color="secondary"
+            color="warning"
           >
-            Add Bond Skill
+            Add Active Skill
           </Button>
-          {companion.bondSkills?.length > 0 ? (
+          {(companion.activeSkills || []).some(s => !s.isOld) ? (
             <TableContainer>
               <Table size="small">
                 <TableHead>
                   <TableRow>
                     <TableCell>Skill</TableCell>
-                    <TableCell>Rank</TableCell>
+                    <TableCell>Proficiency</TableCell>
                     <TableCell>Level</TableCell>
-                    <TableCell>Primary Stat</TableCell>
+                    <TableCell sx={{ width: 200 }}>Prompts</TableCell>
                     <TableCell width={80}>Actions</TableCell>
+                    <TableCell width={60}>Copy</TableCell>
+                    <TableCell width={50}>Adv</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {companion.bondSkills.map((skill, index) => (
+                  {(companion.activeSkills || []).map((skill, index) => !skill.isOld && (
                     <TableRow key={index}>
-                      <TableCell>[{skill.name}]</TableCell>
+                      <TableCell><CompanionSkillNameCell skill={skill} /></TableCell>
                       <TableCell>{skill.rank}</TableCell>
                       <TableCell>{skill.level}</TableCell>
-                      <TableCell>{skill.primaryStatShared || '-'}</TableCell>
                       <TableCell>
-                        <IconButton size="small" onClick={() => handleEditBondSkill(skill, index)}>
+                        <Box sx={{ display: 'flex', gap: 0.5 }}>
+                          <Tooltip title="Skill Offered Prompt">
+                            <IconButton size="small" onClick={() => openPromptDialog('offered', skill)} sx={{ color: 'success.main' }}>
+                              <SkillOfferedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Skill Level Up Prompt">
+                            <IconButton size="small" onClick={() => openPromptDialog('levelup', skill)} sx={{ color: 'info.main' }}>
+                              <LevelUpIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Skill Advancement Prompt">
+                            <IconButton size="small" onClick={() => openPromptDialog('advancement', skill)} sx={{ color: 'warning.main' }}>
+                              <AdvanceIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <IconButton size="small" onClick={() => handleEditActiveSkill(skill, index)}>
                           <EditIcon fontSize="small" />
                         </IconButton>
-                        <IconButton size="small" color="error" onClick={() => handleDeleteBondSkill(index)}>
+                        <IconButton size="small" color="error" onClick={() => handleDeleteActiveSkill(index)}>
                           <DeleteIcon fontSize="small" />
                         </IconButton>
+                      </TableCell>
+                      <TableCell>
+                        <Tooltip title="Copy Description">
+                          <IconButton size="small" onClick={() => copyDescription('active', skill)} sx={{ color: 'secondary.main' }}>
+                            <CopyIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell>
+                        {skill.advancement && (
+                          <Chip label="!" size="small" color="warning" sx={{ fontWeight: 'bold', minWidth: 28 }} />
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -1059,10 +1377,175 @@ function Companion() {
               </Table>
             </TableContainer>
           ) : (
-            <Typography color="text.secondary">No bond skills yet</Typography>
+            <Typography color="text.secondary">No active skills yet</Typography>
           )}
         </AccordionDetails>
       </Accordion>
+
+      {/* Passive Skills */}
+      <Accordion defaultExpanded>
+        <AccordionSummary expandIcon={<ExpandIcon />}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PassiveIcon sx={{ color: 'info.main' }} />
+            <Typography variant="h6">
+              {companionDisplayName}'s Passive Skills ({(companion.passiveSkills || []).filter(s => !s.isOld).length})
+            </Typography>
+          </Box>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Button
+            variant="outlined"
+            startIcon={<AddIcon />}
+            onClick={handleAddPassiveSkill}
+            size="small"
+            sx={{ mb: 2 }}
+            color="info"
+          >
+            Add Passive Skill
+          </Button>
+          {(companion.passiveSkills || []).some(s => !s.isOld) ? (
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Skill</TableCell>
+                    <TableCell>Tier</TableCell>
+                    <TableCell sx={{ width: 140 }}>Prompts</TableCell>
+                    <TableCell width={80}>Actions</TableCell>
+                    <TableCell width={60}>Copy</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {(companion.passiveSkills || []).map((skill, index) => !skill.isOld && (
+                    <TableRow key={index}>
+                      <TableCell><CompanionSkillNameCell skill={skill} isPassive /></TableCell>
+                      <TableCell>{skill.tier}</TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 0.5 }}>
+                          <Tooltip title="Passive Skill Offered Prompt">
+                            <IconButton size="small" onClick={() => openPromptDialog('passive_offered', skill)} sx={{ color: 'success.main' }}>
+                              <SkillOfferedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Passive Tier Up Prompt">
+                            <IconButton size="small" onClick={() => openPromptDialog('passive_levelup', skill)} sx={{ color: 'info.main' }}>
+                              <LevelUpIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <IconButton size="small" onClick={() => handleEditPassiveSkill(skill, index)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton size="small" color="error" onClick={() => handleDeletePassiveSkill(index)}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                      <TableCell>
+                        <Tooltip title="Copy Description">
+                          <IconButton size="small" onClick={() => copyDescription('passive', skill)} sx={{ color: 'secondary.main' }}>
+                            <CopyIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Typography color="text.secondary">No passive skills yet</Typography>
+          )}
+        </AccordionDetails>
+      </Accordion>
+
+      {/* Old Skills (Archived) */}
+      {((companion.activeSkills || []).some(s => s.isOld) || (companion.passiveSkills || []).some(s => s.isOld)) && (
+        <Accordion>
+          <AccordionSummary expandIcon={<ExpandIcon />}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="h6" sx={{ color: 'text.secondary' }}>
+                {companionDisplayName}'s Old Skills (Archived)
+              </Typography>
+            </Box>
+          </AccordionSummary>
+          <AccordionDetails>
+            {/* Old Active Skills */}
+            {(companion.activeSkills || []).some(s => s.isOld) && (
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, color: 'warning.main' }}>
+                  Old Active Skills
+                </Typography>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Skill</TableCell>
+                        <TableCell>Proficiency</TableCell>
+                        <TableCell>Level</TableCell>
+                        <TableCell width={80}>Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {(companion.activeSkills || []).map((skill, index) => skill.isOld && (
+                        <TableRow key={index} sx={{ opacity: 0.7 }}>
+                          <TableCell><CompanionSkillNameCell skill={skill} /></TableCell>
+                          <TableCell>{skill.rank}</TableCell>
+                          <TableCell>{skill.level}</TableCell>
+                          <TableCell>
+                            <IconButton size="small" onClick={() => handleEditActiveSkill(skill, index)}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton size="small" color="error" onClick={() => handleDeleteActiveSkill(index)}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            )}
+            {/* Old Passive Skills */}
+            {(companion.passiveSkills || []).some(s => s.isOld) && (
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 1, color: 'info.main' }}>
+                  Old Passive Skills
+                </Typography>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Skill</TableCell>
+                        <TableCell>Tier</TableCell>
+                        <TableCell width={80}>Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {(companion.passiveSkills || []).map((skill, index) => skill.isOld && (
+                        <TableRow key={index} sx={{ opacity: 0.7 }}>
+                          <TableCell><CompanionSkillNameCell skill={skill} isPassive /></TableCell>
+                          <TableCell>{skill.tier}</TableCell>
+                          <TableCell>
+                            <IconButton size="small" onClick={() => handleEditPassiveSkill(skill, index)}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton size="small" color="error" onClick={() => handleDeletePassiveSkill(index)}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            )}
+          </AccordionDetails>
+        </Accordion>
+      )}
 
       {/* Stat Boosts (Body Tempering, Fruits, etc.) */}
       <Accordion defaultExpanded>
@@ -1176,11 +1659,24 @@ function Companion() {
         currentSnapshot={editingSnapshotLevel ? companion.levelSnapshots?.[editingSnapshotLevel] : null}
         onSave={handleSaveSnapshot}
       />
-      <SkillDialog
-        open={skillDialogOpen}
-        onClose={() => setSkillDialogOpen(false)}
+      <CompanionActiveSkillDialog
+        open={activeSkillDialogOpen}
+        onClose={() => setActiveSkillDialogOpen(false)}
         skill={editingSkill}
-        onSave={handleSaveBondSkill}
+        onSave={handleSaveActiveSkill}
+      />
+      <CompanionPassiveSkillDialog
+        open={passiveSkillDialogOpen}
+        onClose={() => setPassiveSkillDialogOpen(false)}
+        skill={editingSkill}
+        onSave={handleSavePassiveSkill}
+      />
+      <CompanionSystemPromptDialog
+        open={promptDialogOpen}
+        onClose={() => setPromptDialogOpen(false)}
+        type={promptType}
+        skill={promptSkill}
+        onCopySuccess={(msg) => setSnackbar({ open: true, message: msg })}
       />
       <StatBoostDialog
         open={boostDialogOpen}
@@ -1188,6 +1684,22 @@ function Companion() {
         boost={editingBoost}
         onSave={handleSaveBoost}
       />
+      
+      {/* Copy Success Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity="success"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
