@@ -53,3 +53,4 @@ export function getResourceIcon(resourceName) {
   return RESOURCE_ICONS[resourceName] || Favorite;
 }
 
+

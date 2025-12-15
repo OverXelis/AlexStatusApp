@@ -22,7 +22,7 @@
  * ============================================================================
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { 
   calculateAllStats, 
@@ -44,13 +44,7 @@ const CharacterContext = createContext(null);
 const API_BASE = '/api';
 
 // Debounce helper
-const debounce = (func, wait) => {
-  let timeout;
-  return (...args) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
-};
+const DEBOUNCE_DELAY = 1000;
 
 export function CharacterProvider({ children }) {
   // Generic state names - these are the actual data holders
@@ -84,9 +78,17 @@ export function CharacterProvider({ children }) {
     loadData();
   }, []);
 
-  // Auto-save debounced
-  const saveToServer = useCallback(
-    debounce(async (mainData, companionData) => {
+  // Auto-save debounced using useRef to avoid React Hook warnings
+  const saveTimeoutRef = useRef(null);
+  
+  const saveToServer = useCallback((mainData, companionData) => {
+    // Clear any pending save
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    // Schedule new save
+    saveTimeoutRef.current = setTimeout(async () => {
       try {
         const payload = { main: mainData };
         if (hasCompanion() && companionData) {
@@ -97,9 +99,8 @@ export function CharacterProvider({ children }) {
       } catch (err) {
         console.error('Failed to auto-save:', err);
       }
-    }, 1000),
-    []
-  );
+    }, DEBOUNCE_DELAY);
+  }, []);
 
   // Trigger auto-save when data changes
   useEffect(() => {
